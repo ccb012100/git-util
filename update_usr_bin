@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -Eeou pipefail
+
+scriptdir=$(dirname -- "$(readlink -f -- "$0")")
+
+cargo build --release || exit 1
+
+util=git-util
+
+cp -uv "$scriptdir/target/release/$util" "$HOME/bin/$util"
+
+echo DONE
