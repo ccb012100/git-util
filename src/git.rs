@@ -1,5 +1,6 @@
 use crate::print::Print;
 use anyhow::{Context, Result};
+use log::debug;
 use std::{
     io::{self, stdout, IsTerminal, Write},
     process::Command,
@@ -10,6 +11,8 @@ pub(crate) struct Git();
 impl Git {
     /// list configured aliases, optionally filtering on those containing `filter`
     pub(crate) fn alias(filter: Option<&str>) -> Result<()> {
+        debug!("{:#?}", filter);
+
         let output = {
             Command::new("git")
                 .args(["config", "--get-regexp", r"^alias\."])
@@ -20,7 +23,7 @@ impl Git {
         match output.status.success() {
             true => {
                 let print_fn: fn(&str) = match stdout().is_terminal() {
-                    true => Print::purple,
+                    true => Print::blue,
                     false => Print::print,
                 };
 
@@ -54,7 +57,8 @@ impl Git {
         Ok(())
     }
 
-    pub(crate) fn l(args: &[String]) -> Result<()> {
+    pub(crate) fn ll(args: &[String]) -> Result<()> {
+        debug!("ll called with: {:#?}", args);
         Self::parse_for_max_count_and_execute(
             "log",
             &[
@@ -73,6 +77,11 @@ impl Git {
         user_args: &[String],
         default_max_count: Option<u8>,
     ) -> Result<()> {
+        debug!(
+            "parse_for_max_count_and_execute called with: {:#?}\n{:#?}\n{:#?}\n{:#?}",
+            command, default_args, user_args, default_max_count
+        );
+
         let default_max_count: u8 = default_max_count.unwrap_or(5);
 
         let (max_count, user_args): (u8, &[String]) = match user_args.is_empty() {
@@ -101,6 +110,11 @@ impl Git {
         default_args: &[&str],
         user_args: &[String],
     ) -> Result<()> {
+        debug!(
+            "execute_git_command called with: {:#?}\n{:#?}\n{:#?}",
+            command, default_args, user_args
+        );
+
         let mut command_args: Vec<&str> = Vec::new();
         command_args.push(command);
 
@@ -110,6 +124,8 @@ impl Git {
         if !user_args.is_empty() {
             user_args.iter().for_each(|arg| command_args.push(arg));
         }
+
+        debug!("parsed command_args: {:#?}", command_args);
 
         let output = Command::new("git")
             .args(&command_args)
