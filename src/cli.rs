@@ -13,13 +13,24 @@ pub(crate) struct Cli {
     pub(crate) v: bool,
 
     #[command(subcommand)]
-    pub(crate) command: Commands,
+    pub(crate) subcommand: Subcommands,
 }
 
 #[derive(Subcommand, Debug)]
-pub(crate) enum Commands {
+pub(crate) enum Subcommands {
+    /// Add updated and untracked files and then commit
+    Aac {
+        /// Command arguments
+        args: Vec<String>,
+    },
     /// List configured aliases
     Alias {
+        /// Command arguments
+        args: Vec<String>,
+    },
+    /// Add updated files and then commit
+    #[clap(alias = "ac")]
+    Auc {
         /// Command arguments
         args: Vec<String>,
     },
@@ -30,8 +41,8 @@ pub(crate) enum Commands {
     },
     /// Call git hook
     Hook {
-        /// Command arguments
-        args: Vec<String>,
+        #[command(subcommand)]
+        hook: HookSubcommands,
     },
     /// List files changed in last n commits
     #[clap(alias = "shf")]
@@ -79,4 +90,10 @@ pub(crate) enum Commands {
         /// Command arguments
         args: Vec<String>,
     },
+}
+
+#[derive(Subcommand, Debug)]
+pub(crate) enum HookSubcommands {
+    /// Precommit hook
+    Precommit {},
 }
