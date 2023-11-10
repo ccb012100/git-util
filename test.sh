@@ -13,11 +13,11 @@ $util alias || exit 1
 echo 'git alias commit'
 $util alias commit || exit 1
 
-echo 'git l 1'
-$util l 1 || exit 1
+echo 'git ll 1'
+$util ll 1 || exit 1
 
-echo 'git l'
-$util l || exit 1
+echo 'git ll'
+$util ll || exit 1
 
-echo 'git l -- -p'
-$util l 1 -- -p || exit 1
+echo 'git ll -- -p'
+$util ll 1 -- -p || exit 1

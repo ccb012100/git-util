@@ -54,7 +54,7 @@ impl Git {
         Ok(())
     }
 
-    pub(crate) fn l(args: &[String]) -> Result<()> {
+    pub(crate) fn ll(args: &[String]) -> Result<()> {
         Self::parse_for_max_count_and_execute(
             "log",
             &[

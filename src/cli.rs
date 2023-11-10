@@ -36,7 +36,7 @@ pub(crate) enum Commands {
         args: Vec<String>,
     },
     /// git-log, formatted to 1 line per commit
-    L {
+    Ll {
         /// Command arguments
         args: Vec<String>,
     },

@@ -23,7 +23,7 @@ fn main() -> Result<ExitCode> {
         Commands::Author { args } => todo!(),
         Commands::Hook { args } => todo!(),
         Commands::Files { args } => todo!(),
-        Commands::L { args } => Git::l(args),
+        Commands::Ll { args } => Git::ll(args),
         Commands::Last { args } => todo!(),
         Commands::Show { args } => todo!(),
         Commands::Restore { args } => todo!(),
