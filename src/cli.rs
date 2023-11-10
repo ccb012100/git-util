@@ -3,14 +3,14 @@ use clap::{arg, Parser, Subcommand};
 #[derive(Parser, Debug)]
 #[command(about, version, arg_required_else_help = true)]
 pub(crate) struct Cli {
-    /// Enable INFO logging
+    /// Enable DEBUG logging
     #[arg(long)]
     #[arg(default_value_t = false)]
     pub(crate) verbose: bool,
 
-    /// Enable DEBUG logging
-    #[arg(long)]
-    pub(crate) vv: bool,
+    /// Enable INFO logging
+    #[arg(short)]
+    pub(crate) v: bool,
 
     #[command(subcommand)]
     pub(crate) command: Commands,
