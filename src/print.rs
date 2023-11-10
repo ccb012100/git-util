@@ -4,8 +4,8 @@ pub(crate) struct Print();
 
 impl Print {
     /// print to `stdout` in purple
-    pub(crate) fn purple(message: &str) {
-        let message: &[AnsiString] = &[Color::Purple.paint(message)];
+    pub(crate) fn blue(message: &str) {
+        let message: &[AnsiString] = &[Color::Blue.paint(message)];
 
         Self::stdout(message);
     }

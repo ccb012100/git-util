@@ -1,18 +1,22 @@
 use clap::{arg, Parser, Subcommand};
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[command(about, version, arg_required_else_help = true)]
 pub(crate) struct Cli {
-    /// Increase message output; useful for debugging
+    /// Enable INFO logging
     #[arg(long)]
     #[arg(default_value_t = false)]
     pub(crate) verbose: bool,
+
+    /// Enable DEBUG logging
+    #[arg(long)]
+    pub(crate) vv: bool,
 
     #[command(subcommand)]
     pub(crate) command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub(crate) enum Commands {
     /// List configured aliases
     Alias {
