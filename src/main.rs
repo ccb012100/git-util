@@ -1,23 +1,24 @@
 use anyhow::Result;
 use clap::Parser;
-use cli::{Cli, HookSubcommands, Subcommands};
-use git::Git;
+use cli::{Cli, HookSubcommands, LogLevel, Subcommands};
+use git::{Git, GitCommandResult};
 use log::{debug, LevelFilter};
-use std::process::ExitCode;
+use print::Print;
 
 mod cli;
 mod git;
 mod print;
 
-fn main() -> Result<ExitCode> {
+fn main() -> ! {
     let cli = Cli::parse();
 
-    let log_level = if cli.verbose {
-        LevelFilter::Debug
-    } else if cli.v {
-        LevelFilter::Info
-    } else {
-        LevelFilter::Warn
+    let log_level = match cli.verbose {
+        LogLevel::Debug => LevelFilter::Debug,
+        LogLevel::Error => LevelFilter::Error,
+        LogLevel::Info => LevelFilter::Info,
+        LogLevel::Warn => LevelFilter::Warn,
+        LogLevel::Off => LevelFilter::Off,
+        LogLevel::Trace => LevelFilter::Trace,
     };
 
     env_logger::Builder::new().filter_level(log_level).init();
@@ -42,24 +43,29 @@ fn main() -> Result<ExitCode> {
         Subcommands::Auc { args } => todo!(),
         Subcommands::Author { args } => todo!(),
         Subcommands::Hook { hook } => run_hook(hook),
-        Subcommands::Files { args } => todo!(),
+        Subcommands::Files { args } => Git::show_files(args),
         Subcommands::Ll { args } => Git::ll(args),
         Subcommands::Last { args } => todo!(),
         Subcommands::Show { args } => todo!(),
-        Subcommands::Restore { args } => todo!(),
+        Subcommands::Restore { args } => Git::restore(args),
         Subcommands::Undo { args } => todo!(),
-        Subcommands::Unstage { args } => todo!(),
-        Subcommands::Update { args } => todo!(),
+        Subcommands::Unstage { args } => Git::unstage(args),
+        Subcommands::Update { args } => Git::update(args),
     };
 
-    #[allow(unreachable_code)]
     match result {
-        Ok(_) => Ok(ExitCode::SUCCESS),
-        Err(e) => Err(e),
+        Ok(git_command) => match git_command {
+            GitCommandResult::Success => std::process::exit(0),
+            GitCommandResult::Error => std::process::exit(1),
+        },
+        Err(e) => {
+            Print::error(&format!("{}", e));
+            std::process::exit(1)
+        }
     }
 }
 
-fn run_hook(hook: &HookSubcommands) -> Result<()> {
+fn run_hook(hook: &HookSubcommands) -> Result<GitCommandResult> {
     match hook {
         HookSubcommands::Precommit {} => todo!(),
     }

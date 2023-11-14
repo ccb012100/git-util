@@ -86,7 +86,7 @@ pub(crate) enum Subcommands {
     #[clap(alias = "unwind")]
     Update {
         /// Command arguments
-        args: Vec<String>,
+        args: String,
     },
 }
 
