@@ -30,10 +30,62 @@ pub(crate) enum GitCommandResult {
 
 type GitResult = Result<GitCommandResult>;
 
-/// this will force color, but isatty() will still be false
-const COLOR: &str = "--color=always"; // this will force color, but isatty() will still be false
+/// Use with diff, show, log, grep commands to set `--color=always`.
+/// This will force color, but `isatty()` will still be false.
+const FORCE_COLOR: &str = "--color=always";
 
 impl Git {
+    #[allow(unreachable_code, unused_variables)]
+    pub(crate) fn aac(args: &[String]) -> GitResult {
+        check_for_staged_files()?;
+
+        // equivalent to `git add --all && git commit`
+        let result: GitCommandResult = execute_git_command(GitCommand {
+            subcommand: "add",
+            default_args: &[&"--all"],
+            user_args: &[],
+        })?;
+        todo!();
+        // FIXME: how to suspend and bring editor to foreground?
+        match result {
+            GitCommandResult::Success => execute_git_command(GitCommand {
+                subcommand: "commit", // force color for `status` subcommand
+                default_args: &[],
+                user_args: args,
+            }),
+            GitCommandResult::Error => Err(anyhow!("git add --all returned an error")),
+        }
+    }
+
+    pub(crate) fn add(args: &[String]) -> GitResult {
+        if args.is_empty() {
+            check_for_staged_files()?;
+
+            // equivalent to `git add --update && git status --short`
+            let result: GitCommandResult = execute_git_command(GitCommand {
+                subcommand: "add",
+                default_args: &[&"--update"],
+                user_args: &[],
+            })?;
+
+            match result {
+                GitCommandResult::Success => execute_git_command(GitCommand {
+                    subcommand: "status", // force color for `status` subcommand
+                    default_args: &[&"--short"],
+                    user_args: &[],
+                }),
+                GitCommandResult::Error => Err(anyhow!("git add --update returned an error")),
+            }
+        } else {
+            // pass through to git-add
+            execute_git_command(GitCommand {
+                subcommand: "add",
+                default_args: &[],
+                user_args: args,
+            })
+        }
+    }
+
     /// list configured aliases, optionally filtering on those containing `filter`
     pub(crate) fn alias(filter: Option<&str>) -> GitResult {
         debug!("_alias_ called with: {:#?}", filter);
@@ -86,13 +138,47 @@ impl Git {
         }
     }
 
+    #[allow(unreachable_code, unused_variables)]
+    pub(crate) fn auc(args: &[String]) -> GitResult {
+        check_for_staged_files()?;
+
+        // equivalent to `git add --all && git commit`
+        let result: GitCommandResult = execute_git_command(GitCommand {
+            subcommand: "add",
+            default_args: &[&"--update"],
+            user_args: &[],
+        })?;
+        todo!();
+        // FIXME: how to suspend and bring editor to foreground?
+        match result {
+            GitCommandResult::Success => execute_git_command(GitCommand {
+                subcommand: "commit", // force color for `status` subcommand
+                default_args: &[],
+                user_args: args,
+            }),
+            GitCommandResult::Error => Err(anyhow!("git add --update returned an error")),
+        }
+    }
+
+    pub(crate) fn author(num: Option<u8>) -> GitResult {
+        execute_git_command(GitCommand {
+            subcommand: "rebase",
+            default_args: &[
+                &format!("HEAD~{}", num.unwrap_or(1)),
+                "-x",
+                "git commit --amend --no-edit --reset-author",
+            ],
+            user_args: &[],
+        })
+    }
+
     pub(crate) fn last(args: &[String]) -> GitResult {
         debug!("_last_ called with: {:#?}", args);
 
         parse_for_max_count_and_execute(
             GitCommand {
                 subcommand: "log",
-                default_args: &[COLOR, "--compact-summary"],
+                default_args: &[FORCE_COLOR, "--compact-summary"],
                 user_args: args,
             },
             DefaultMaxCount(1),
@@ -106,7 +192,7 @@ impl Git {
             GitCommand {
                 subcommand: "log",
                 default_args: &[
-                    COLOR,
+                    FORCE_COLOR,
                     "--pretty='%C(yellow)%h %C(magenta)%as %C(blue)%aL %C(cyan)%s%C(reset)'",
                 ],
                 user_args: args,
@@ -141,7 +227,7 @@ impl Git {
         parse_for_max_count_and_execute(
             GitCommand {
                 subcommand: "show",
-                default_args: &[COLOR, "--expand-tabs=4"],
+                default_args: &[FORCE_COLOR, "--expand-tabs=4"],
                 user_args: args,
             },
             DefaultMaxCount(1),
@@ -161,12 +247,12 @@ impl Git {
         )
     }
 
-    pub(crate) fn undo(num: u8) -> GitResult {
+    pub(crate) fn undo(num: Option<u8>) -> GitResult {
         debug!("undo called with: {:#?}", num);
 
         execute_git_command(GitCommand {
             subcommand: "reset",
-            default_args: &[&format!("HEAD~{}", num)],
+            default_args: &[&format!("HEAD~{}", num.unwrap_or(1))],
             user_args: &[],
         })
     }
@@ -240,11 +326,30 @@ fn parse_for_max_count_and_execute(
     })
 }
 
+fn check_for_staged_files() -> GitResult {
+    let output: std::process::Output = Command::new("git")
+        .args(["diff", "--staged", "--name-only"])
+        .output()
+        .with_context(|| "Failed to execute git command")?;
+
+    if !output.stdout.is_empty() {
+        Err(anyhow!("there are already staged files!"))
+    } else {
+        Ok(GitCommandResult::Success)
+    }
+}
+
 /// Execute `git` command with the supplied arguments
 fn execute_git_command(command: GitCommand) -> GitResult {
     debug!("_execute_git_command_ called with: {:#?}", command);
 
-    let mut command_args: Vec<&str> = vec![command.subcommand];
+    let mut command_args: Vec<&str> = if command.subcommand.eq("status") {
+        // Because of the way Rust wraps each argument in double quotes, "-c" and "color.status=always" must be parsed
+        // separately from each other, as well as from "git" and "status", to be parsed correctly by the shell
+        vec!["-c", "color.status=always", command.subcommand]
+    } else {
+        vec![command.subcommand]
+    };
 
     if !command.default_args.is_empty() {
         command
