@@ -1,4 +1,4 @@
-use std::io::{stdout, IsTerminal, stderr};
+use std::io::{stderr, stdout, IsTerminal, StdoutLock, Write};
 
 use nu_ansi_term::{AnsiString, AnsiStrings, Color};
 
@@ -6,10 +6,18 @@ pub(crate) struct Print();
 
 impl Print {
     /// print to `stdout` in blue
-    pub(crate) fn blue(message: &str) {
+    pub(crate) fn blue_stdout(message: &str, lock: &mut StdoutLock) {
         match stdout().is_terminal() {
-            true => Self::stdout(&[Color::Blue.bold().paint(message)]),
-            false => println!("{}", message),
+            true => Self::stdout(&[Color::Blue.bold().paint(message)], lock),
+            false => writeln!(lock, "{}", message).unwrap(),
+        }
+    }
+
+    /// print to `stderr` in blue
+    pub(crate) fn blue_stderr(message: &str) {
+        match stdout().is_terminal() {
+            true => Self::stderr(&[Color::Blue.bold().paint(message)]),
+            false => eprintln!("{}", message),
         }
     }
 
@@ -29,7 +37,7 @@ impl Print {
     }
 
     /// print `ANSIStrings` to `stdout`
-    fn stdout(message: &[AnsiString]) {
-        println!("{}", AnsiStrings(message));
+    fn stdout(message: &[AnsiString], lock: &mut StdoutLock) {
+        writeln!(lock, "{}", AnsiStrings(message)).unwrap();
     }
 }

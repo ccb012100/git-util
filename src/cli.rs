@@ -1,4 +1,4 @@
-use clap::{arg, Parser, Subcommand, ValueEnum};
+use clap::{arg, command, Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser, Debug)]
 #[command(about, version, arg_required_else_help = true)]
@@ -9,6 +9,10 @@ pub(crate) struct Cli {
     #[arg(default_missing_value = "debug", num_args = 0..=1, require_equals = true)]
     #[clap(value_enum)]
     pub(crate) verbose: LogLevel,
+
+    /// Print the Git command executed
+    #[arg(long, global = true)]
+    pub(crate) print_command: bool,
 
     #[command(subcommand)]
     pub(crate) subcommand: Subcommands,
@@ -68,19 +72,19 @@ pub(crate) enum Subcommands {
     /// git-restore
     #[clap(alias = "rest")]
     Restore {
-        /// Command arguments
-        args: Vec<String>,
+        #[command(flatten)]
+        files: FileOperations,
     },
     /// Reset last commit or last n commits and keeps undone changes in working directory
     Undo {
-        /// Command arguments
-        args: Vec<String>,
+        /// number of commits to undo
+        num: u8,
     },
     /// Move staged files back to staging area; alias for `git-restore --staged`
     #[clap(alias = "u")]
     Unstage {
-        /// Command arguments
-        args: Vec<String>,
+        #[command(flatten)]
+        files: FileOperations,
     },
     /// Update local branch from origin without checking it out
     #[clap(alias = "unwind")]
@@ -90,13 +94,27 @@ pub(crate) enum Subcommands {
     },
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Debug, Clone, Args)]
+#[group(required = true, multiple = false)]
+pub(crate) struct FileOperations {
+    pub(crate) which: Option<WhichFiles>,
+
+    /// Command arguments
+    pub(crate) args: Vec<String>,
+}
+
+#[derive(Subcommand, Debug, Clone, Copy)]
 pub(crate) enum HookSubcommands {
     /// Precommit hook
     Precommit {},
 }
 
-#[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, ValueEnum, Clone, Copy)]
+pub(crate) enum WhichFiles {
+    All,
+}
+
+#[derive(ValueEnum, Debug, Copy, Clone)]
 pub(crate) enum LogLevel {
     /// Info
     Info,
