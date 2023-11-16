@@ -20,6 +20,11 @@ pub(crate) struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub(crate) enum Subcommands {
+    /// Wrapper around git-add
+    A {
+        /// Command arguments
+        args: Vec<String>,
+    },
     /// Add updated and untracked files and then commit
     Aac {
         /// Command arguments
@@ -38,8 +43,8 @@ pub(crate) enum Subcommands {
     },
     /// Reset author for last n commits
     Author {
-        /// Command arguments
-        args: Vec<String>,
+        /// Number of commits to reset (else defaults to 1)
+        num: Option<u8>,
     },
     /// Call git hook
     Hook {
@@ -53,7 +58,7 @@ pub(crate) enum Subcommands {
         args: Vec<String>,
     },
     /// git-log, formatted to 1 line per commit
-    Ll {
+    L {
         /// Command arguments
         args: Vec<String>,
     },
@@ -77,8 +82,8 @@ pub(crate) enum Subcommands {
     },
     /// Reset last commit or last n commits and keeps undone changes in working directory
     Undo {
-        /// number of commits to undo
-        num: u8,
+        /// number of commits to undo (else defaults to 1)
+        num: Option<u8>,
     },
     /// Move staged files back to staging area; alias for `git-restore --staged`
     #[clap(alias = "u")]

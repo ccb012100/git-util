@@ -38,16 +38,17 @@ fn main() -> ! {
 
     #[allow(unused_variables)]
     let result = match &cli.subcommand {
-        Subcommands::Aac { args } => todo!(),
+        Subcommands::A { args } => Git::add(args),
+        Subcommands::Aac { args } => Git::aac(args),
         Subcommands::Alias { args } => match args.is_empty() {
             true => Git::alias(None),
             false => Git::alias(Some(args.join(" ").as_str())),
         },
-        Subcommands::Auc { args } => todo!(),
-        Subcommands::Author { args } => todo!(),
+        Subcommands::Auc { args } => Git::auc(args),
+        Subcommands::Author { num } => Git::author(*num),
         Subcommands::Hook { hook } => run_hook(hook),
         Subcommands::Files { args } => Git::show_files(args),
-        Subcommands::Ll { args } => Git::ll(args),
+        Subcommands::L { args } => Git::ll(args),
         Subcommands::Last { args } => Git::last(args),
         Subcommands::Show { args } => Git::show(args),
         Subcommands::Restore { files } => {
