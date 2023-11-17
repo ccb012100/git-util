@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use cli::{Cli, HookSubcommands, LogLevel, Subcommands};
-use git::{Git, GitCommandResult, PRINT_COMMAND as GIT_PRINT_COMMAND};
+use git::commands::{GitCommands, GitCommandResult, PRINT_COMMAND as GIT_PRINT_COMMAND};
 use log::{debug, LevelFilter};
 use print::Print;
 use std::sync::atomic::Ordering;
@@ -38,39 +38,39 @@ fn main() -> ! {
 
     #[allow(unused_variables)]
     let result = match &cli.subcommand {
-        Subcommands::A { args } => Git::add(args),
-        Subcommands::Aac { args } => Git::aac(args),
+        Subcommands::A { args } => GitCommands::add(args),
+        Subcommands::Aac { args } => GitCommands::aac(args),
         Subcommands::Alias { args } => match args.is_empty() {
-            true => Git::alias(None),
-            false => Git::alias(Some(args.join(" ").as_str())),
+            true => GitCommands::alias(None),
+            false => GitCommands::alias(Some(args.join(" ").as_str())),
         },
-        Subcommands::Auc { args } => Git::auc(args),
-        Subcommands::Author { num } => Git::author(*num),
+        Subcommands::Auc { args } => GitCommands::auc(args),
+        Subcommands::Author { num } => GitCommands::author(*num),
         Subcommands::Hook { hook } => run_hook(hook),
-        Subcommands::Files { args } => Git::show_files(args),
-        Subcommands::L { args } => Git::ll(args),
-        Subcommands::Last { args } => Git::last(args),
-        Subcommands::Show { args } => Git::show(args),
+        Subcommands::Files { args } => GitCommands::show_files(args),
+        Subcommands::L { args } => GitCommands::ll(args),
+        Subcommands::Last { args } => GitCommands::last(args),
+        Subcommands::Show { args } => GitCommands::show(args),
         Subcommands::Restore { files } => {
             if let Some(which) = files.which {
                 match which {
-                    cli::WhichFiles::All => Git::restore_all(),
+                    cli::WhichFiles::All => GitCommands::restore_all(),
                 }
             } else {
-                Git::restore(&files.args)
+                GitCommands::restore(&files.args)
             }
         }
-        Subcommands::Undo { num } => Git::undo(*num),
+        Subcommands::Undo { num } => GitCommands::undo(*num),
         Subcommands::Unstage { files } => {
             if let Some(which) = files.which {
                 match which {
-                    cli::WhichFiles::All => Git::unstage_all(),
+                    cli::WhichFiles::All => GitCommands::unstage_all(),
                 }
             } else {
-                Git::unstage(&files.args)
+                GitCommands::unstage(&files.args)
             }
         }
-        Subcommands::Update { args } => Git::update(args),
+        Subcommands::Update { args } => GitCommands::update(args),
     };
 
     match result {
