@@ -48,7 +48,7 @@ fn main() -> ! {
         Subcommands::Author { num } => GitCommands::author(*num),
         Subcommands::Hook { hook } => run_hook(hook),
         Subcommands::Files { args } => GitCommands::show_files(args),
-        Subcommands::L { args } => GitCommands::ll(args),
+        Subcommands::L { args } => GitCommands::log_oneline(args),
         Subcommands::Last { args } => GitCommands::last(args),
         Subcommands::Show { args } => GitCommands::show(args),
         Subcommands::Restore { files } => {
