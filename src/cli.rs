@@ -62,7 +62,7 @@ pub(crate) enum Subcommands {
         /// Command arguments
         args: Vec<String>,
     },
-    /// git-log compact summary (commit message and list of changed files)
+    /// git-log, compact summary (commit message and list of changed files)
     #[clap(alias = "la")]
     Last {
         /// Command arguments

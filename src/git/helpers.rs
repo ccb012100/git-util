@@ -2,10 +2,7 @@ use super::commands::{GitCommand, GitCommandResult};
 use crate::{git::commands::PRINT_COMMAND, print::Print};
 use anyhow::{anyhow, Context, Result};
 use log::debug;
-use std::{
-    io::{self, Write},
-    process::Command,
-};
+use std::process::Command;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DefaultMaxCount(pub u8);
@@ -63,12 +60,12 @@ pub fn check_for_staged_files() -> GitResult {
 pub fn execute_git_command(command: GitCommand) -> GitResult {
     debug!("_execute_git_command_ called with: {:#?}", command);
 
-    let mut command_args: Vec<&str> = if command.subcommand.eq("status") {
-        // Because of the way Rust wraps each argument in double quotes, "-c" and "color.status=always" must be parsed
-        // separately from each other, as well as from "git" and "status", to be parsed correctly by the shell
-        vec!["-c", "color.status=always", command.subcommand]
-    } else {
-        vec![command.subcommand]
+    let mut command_args: Vec<&str> = match command.subcommand {
+        "status" | "reset" => {
+            // To be parsed correctly by git, "-c", "color.ui=always", and the subcommand must be passed as separate args
+            vec!["-c", "color.ui=always", command.subcommand]
+        }
+        _ => vec![command.subcommand],
     };
 
     if !command.default_args.is_empty() {
@@ -94,18 +91,13 @@ pub fn execute_git_command(command: GitCommand) -> GitResult {
         Print::blue_stderr(&format!("command: {:?}", command));
     }
 
-    let output: std::process::Output = command.output().with_context(|| {
-        format!(
-            "Failed to execute git command with args \"{}\"",
-            command_args.join(" ")
-        )
-    })?;
+    let x: std::process::ExitStatus = command
+        .status()
+        .with_context(|| format!("Failed to execute git command: {:?}", command))?;
 
-    io::stdout().write_all(&output.stdout)?;
-    io::stderr().write_all(&output.stderr)?;
-
-    match output.status.success() {
-        true => Ok(GitCommandResult::Success),
-        false => Ok(GitCommandResult::Error),
+    if x.success() {
+        Ok(GitCommandResult::Success)
+    } else {
+        Ok(GitCommandResult::Error)
     }
 }

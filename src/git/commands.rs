@@ -45,8 +45,7 @@ impl GitCommands {
             default_args: &[&"--all"],
             user_args: &[],
         })?;
-        todo!();
-        // FIXME: how to suspend and bring editor to foreground?
+
         match result {
             GitCommandResult::Success => execute_git_command(GitCommand {
                 subcommand: "commit", // force color for `status` subcommand
@@ -148,8 +147,7 @@ impl GitCommands {
             default_args: &[&"--update"],
             user_args: &[],
         })?;
-        todo!();
-        // FIXME: how to suspend and bring editor to foreground?
+
         match result {
             GitCommandResult::Success => execute_git_command(GitCommand {
                 subcommand: "commit", // force color for `status` subcommand
@@ -185,8 +183,8 @@ impl GitCommands {
         )
     }
 
-    pub fn ll(args: &[String]) -> GitResult {
-        debug!("_ll_ called with: {:#?}", args);
+    pub fn log_oneline(args: &[String]) -> GitResult {
+        debug!("_log_oneline_ called with: {:#?}", args);
 
         parse_for_max_count_and_execute(
             GitCommand {
