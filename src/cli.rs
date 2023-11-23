@@ -1,4 +1,4 @@
-use clap::{arg, command, Args, Parser, Subcommand, ValueEnum};
+use clap::{arg, command, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser, Debug)]
 #[command(about, version, arg_required_else_help = true)]
@@ -77,8 +77,12 @@ pub(crate) enum Subcommands {
     /// git-restore
     #[clap(alias = "rest")]
     Restore {
-        #[command(flatten)]
-        files: FileOperations,
+        /// which files to operate on
+        #[command(subcommand)]
+        which: Option<WhichFiles>,
+
+        /// Command arguments
+        args: Vec<String>,
     },
     /// Reset last commit or last n commits and keeps undone changes in working directory
     Undo {
@@ -88,8 +92,12 @@ pub(crate) enum Subcommands {
     /// Move staged files back to staging area; alias for `git-restore --staged`
     #[clap(alias = "u")]
     Unstage {
-        #[command(flatten)]
-        files: FileOperations,
+        /// which files to operate on
+        #[command(subcommand)]
+        which: Option<WhichFiles>,
+
+        /// Command arguments
+        args: Vec<String>,
     },
     /// Update local branch from origin without checking it out
     #[clap(alias = "unwind")]
@@ -99,22 +107,13 @@ pub(crate) enum Subcommands {
     },
 }
 
-#[derive(Debug, Clone, Args)]
-#[group(required = true, multiple = false)]
-pub(crate) struct FileOperations {
-    pub(crate) which: Option<WhichFiles>,
-
-    /// Command arguments
-    pub(crate) args: Vec<String>,
-}
-
 #[derive(Subcommand, Debug, Clone, Copy)]
 pub(crate) enum HookSubcommands {
     /// Precommit hook
     Precommit {},
 }
 
-#[derive(Debug, ValueEnum, Clone, Copy)]
+#[derive(Subcommand, Debug, Clone, Copy)]
 pub(crate) enum WhichFiles {
     All,
 }
