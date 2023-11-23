@@ -1,16 +1,15 @@
 use anyhow::Result;
-use clap::error::ErrorKind;
-use clap::{CommandFactory, Parser};
+use clap::{error::ErrorKind, CommandFactory, Parser};
 use cli::{Cli, HookSubcommands, Subcommands};
 use git::{
     commands::{immutable::ImmutableCommands, mutable::MutableCommands},
-    GitConfigOpts,
+    hooks::precommit::PrecommitHook,
+    GitConfigOpts, GitResult,
 };
+use git::{Git, GitCommandResult, PRINT_COMMAND as GIT_PRINT_COMMAND};
 use log::{debug, info, LevelFilter};
 use print::Print;
 use std::sync::atomic::Ordering;
-
-use crate::git::{Git, GitCommandResult, PRINT_COMMAND as GIT_PRINT_COMMAND};
 
 mod cli;
 mod git;
@@ -56,9 +55,9 @@ fn main() -> ! {
     }
 }
 
-fn run_hook(hook: &HookSubcommands) -> Result<GitCommandResult> {
+fn run_hook(hook: &HookSubcommands) -> GitResult {
     match hook {
-        HookSubcommands::Precommit {} => todo!(),
+        HookSubcommands::Precommit {} => PrecommitHook::run(),
     }
 }
 

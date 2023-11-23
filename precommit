@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -Eeou pipefail
+
+scriptdir=$(dirname -- "$(readlink -f -- "$0")")
+
+# ANSI colors
+clearformat='\033[0m' # clear formatting
+orange='\033[0;33m'
+red='\033[0;31m'
+
+function info() {
+    echo >&2 -e "${orange}${*}${clearformat}"
+}
+function error() {
+    echo >&2 -e "${red}${*}${clearformat}"
+}
+
+info "Running hook from ${scriptdir}"
+
+/home/ccb/src/git-util/target/debug/git-util -vvv --print-command hook precommit

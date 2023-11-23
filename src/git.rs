@@ -4,6 +4,8 @@ use log::{debug, trace};
 use std::{process::Command, sync::atomic::AtomicBool};
 
 pub(crate) mod commands;
+pub(crate) mod env_vars;
+pub(crate) mod hooks;
 
 pub(crate) type GitResult = Result<GitCommandResult>;
 pub(crate) struct Git();
