@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use cli::{Cli, HookSubcommands, LogLevel, Subcommands};
-use git::commands::{GitCommands, GitCommandResult, PRINT_COMMAND as GIT_PRINT_COMMAND};
+use git::commands::{GitCommandResult, GitCommands, PRINT_COMMAND as GIT_PRINT_COMMAND};
 use log::{debug, LevelFilter};
 use print::Print;
 use std::sync::atomic::Ordering;
@@ -36,7 +36,6 @@ fn main() -> ! {
 
     GIT_PRINT_COMMAND.store(cli.print_command, Ordering::Relaxed);
 
-    #[allow(unused_variables)]
     let result = match &cli.subcommand {
         Subcommands::A { args } => GitCommands::add(args),
         Subcommands::Aac { args } => GitCommands::aac(args),
@@ -51,23 +50,23 @@ fn main() -> ! {
         Subcommands::L { args } => GitCommands::log_oneline(args),
         Subcommands::Last { args } => GitCommands::last(args),
         Subcommands::Show { args } => GitCommands::show(args),
-        Subcommands::Restore { files } => {
-            if let Some(which) = files.which {
-                match which {
+        Subcommands::Restore { which, args } => {
+            if let Some(all) = which {
+                match all {
                     cli::WhichFiles::All => GitCommands::restore_all(),
                 }
             } else {
-                GitCommands::restore(&files.args)
+                GitCommands::restore(args)
             }
         }
         Subcommands::Undo { num } => GitCommands::undo(*num),
-        Subcommands::Unstage { files } => {
-            if let Some(which) = files.which {
+        Subcommands::Unstage { which, args } => {
+            if let Some(which) = which {
                 match which {
                     cli::WhichFiles::All => GitCommands::unstage_all(),
                 }
             } else {
-                GitCommands::unstage(&files.args)
+                GitCommands::unstage(args)
             }
         }
         Subcommands::Update { args } => GitCommands::update(args),
