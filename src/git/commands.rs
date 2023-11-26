@@ -32,7 +32,6 @@ pub enum GitCommandResult {
 const FORCE_COLOR: &str = "--color=always";
 
 impl GitCommands {
-    #[allow(unreachable_code, unused_variables)]
     pub fn aac(args: &[String]) -> GitResult {
         CommandRunner::check_for_staged_files()?;
 
@@ -134,7 +133,6 @@ impl GitCommands {
         }
     }
 
-    #[allow(unreachable_code, unused_variables)]
     pub fn auc(args: &[String]) -> GitResult {
         CommandRunner::check_for_staged_files()?;
 
