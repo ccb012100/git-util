@@ -17,6 +17,9 @@ use std::{
 /// This will force color, but `isatty()` will still be false.
 const FORCE_COLOR: &str = "--color=always";
 
+/// This is defined here in a `const` so that it's easy to keep all usages in sync
+const PRINT_CONFIG_OPTION: fn(&str, &mut StdoutLock) = Print::blue_stdout;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct GitCommand<'a> {
     pub subcommand: &'a str,
@@ -105,8 +108,6 @@ impl GitCommands {
 
                 let mut lock: io::StdoutLock<'_> = io::stdout().lock();
 
-                let print_fn: fn(&str, &mut StdoutLock) = Print::blue_stdout;
-
                 match filter {
                     Some(f) => {
                         let term_upper = f.to_uppercase();
@@ -120,12 +121,12 @@ impl GitCommands {
                                     None
                                 }
                             })
-                            .for_each(|x| print_fn(x, &mut lock));
+                            .for_each(|x| PRINT_CONFIG_OPTION(x, &mut lock));
                     }
                     None => {
                         output_lines
                             .map(|line| line.replace("alias.", ""))
-                            .for_each(|x| print_fn(&x, &mut lock));
+                            .for_each(|x| PRINT_CONFIG_OPTION(&x, &mut lock));
                     }
                 }
             }
@@ -164,8 +165,6 @@ impl GitCommands {
 
                 let mut lock: io::StdoutLock<'_> = io::stdout().lock();
 
-                let print_fn: fn(&str, &mut StdoutLock) = Print::blue_stdout;
-
                 let config_lines = output_lines.filter(|config| !config.starts_with("alias."));
 
                 match filter {
@@ -174,10 +173,10 @@ impl GitCommands {
 
                         config_lines
                             .filter(|line| line.to_uppercase().contains(&term_upper))
-                            .for_each(|x| print_fn(x, &mut lock));
+                            .for_each(|x| PRINT_CONFIG_OPTION(x, &mut lock));
                     }
                     None => {
-                        config_lines.for_each(|x| print_fn(x, &mut lock));
+                        config_lines.for_each(|x| PRINT_CONFIG_OPTION(x, &mut lock));
                     }
                 }
             }
