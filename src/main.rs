@@ -1,10 +1,13 @@
 use anyhow::Result;
-use clap::Parser;
-use cli::{Cli, HookSubcommands, LogLevel, Subcommands};
-use git::commands::{GitCommandResult, GitCommands, PRINT_COMMAND as GIT_PRINT_COMMAND};
-use log::{debug, LevelFilter};
+use clap::error::ErrorKind;
+use clap::{CommandFactory, Parser};
+use cli::{Cli, HookSubcommands, Subcommands};
+use git::{commands::GitCommands, GitConfigOpts};
+use log::{debug, info, LevelFilter};
 use print::Print;
 use std::sync::atomic::Ordering;
+
+use crate::git::{GitCommandResult, PRINT_COMMAND as GIT_PRINT_COMMAND};
 
 mod cli;
 mod git;
@@ -13,18 +16,7 @@ mod print;
 fn main() -> ! {
     let cli = Cli::parse();
 
-    let log_level = match cli.verbose {
-        LogLevel::Debug => LevelFilter::Debug,
-        LogLevel::Error => LevelFilter::Error,
-        LogLevel::Info => LevelFilter::Info,
-        LogLevel::Warn => LevelFilter::Warn,
-        LogLevel::Off => LevelFilter::Off,
-        LogLevel::Trace => LevelFilter::Trace,
-    };
-
-    env_logger::Builder::new().filter_level(log_level).init();
-
-    debug!("logging initialized");
+    initialize_logger(&cli.options.verbose);
 
     #[cfg(windows)]
     {
@@ -34,22 +26,78 @@ fn main() -> ! {
 
     debug!("parsed Cli: {:#?}", &cli);
 
-    GIT_PRINT_COMMAND.store(cli.print_command, Ordering::Relaxed);
+    GIT_PRINT_COMMAND.store(cli.options.print_command, Ordering::Relaxed);
 
-    let result = match &cli.subcommand {
+    let result = if let Some(args) = &cli.fallback {
+        GitCommands::pass_through(args)
+    } else if let Some(subcommand) = &cli.subcommand {
+        parse_subcommand(subcommand)
+    } else {
+        let mut cmd = Cli::command();
+        cmd.error(
+            ErrorKind::MissingRequiredArgument,
+            "Either FALLBACK or COMMAND must be provided!",
+        )
+        .exit()
+    };
+
+    match result {
+        Ok(git_command) => match git_command {
+            GitCommandResult::Success => std::process::exit(0),
+            GitCommandResult::Error => std::process::exit(1),
+        },
+        Err(e) => {
+            Print::error(&format!("{}", e));
+            std::process::exit(1)
+        }
+    }
+}
+
+fn run_hook(hook: &HookSubcommands) -> Result<GitCommandResult> {
+    match hook {
+        HookSubcommands::Precommit {} => todo!(),
+    }
+}
+
+fn initialize_logger(verbosity: &u8) {
+    let log_level = match &verbosity {
+        0 => LevelFilter::Error,
+        1 => LevelFilter::Warn,
+        2 => LevelFilter::Info,
+        3 => LevelFilter::Debug,
+        4..=std::u8::MAX => LevelFilter::Trace,
+    };
+
+    env_logger::Builder::new().filter_level(log_level).init();
+
+    info!("logging initialized at level {}", log_level);
+}
+
+fn parse_subcommand(subcommand: &Subcommands) -> Result<GitCommandResult, anyhow::Error> {
+    match subcommand {
         Subcommands::A { args } => GitCommands::add(args),
         Subcommands::Aac { args } => GitCommands::aac(args),
-        Subcommands::Alias { args } => match args.is_empty() {
-            true => GitCommands::alias(None),
-            false => GitCommands::alias(Some(args.join(" ").as_str())),
-        },
+        Subcommands::Alias { filter, options } => GitCommands::alias(
+            filter.as_deref(),
+            GitConfigOpts {
+                show_origin: options.show_origin,
+                show_scope: options.show_scope,
+            },
+        ),
         Subcommands::Auc { args } => GitCommands::auc(args),
         Subcommands::Author { num } => GitCommands::author(*num),
+        Subcommands::Conf { filter, options } => GitCommands::conf(
+            filter.as_deref(),
+            GitConfigOpts {
+                show_origin: options.show_origin,
+                show_scope: options.show_scope,
+            },
+        ),
         Subcommands::Hook { hook } => run_hook(hook),
-        Subcommands::Files { args } => GitCommands::show_files(args),
-        Subcommands::L { args } => GitCommands::log_oneline(args),
-        Subcommands::Last { args } => GitCommands::last(args),
-        Subcommands::Show { args } => GitCommands::show(args),
+        Subcommands::Files { num } => GitCommands::show_files(*num),
+        Subcommands::L { num, args } => GitCommands::log_oneline(*num, args),
+        Subcommands::Last { num, args } => GitCommands::last(*num, args),
+        Subcommands::Show { num, args } => GitCommands::show(*num, args),
         Subcommands::Restore { which, args } => {
             if let Some(all) = which {
                 match all {
@@ -70,22 +118,5 @@ fn main() -> ! {
             }
         }
         Subcommands::Update { args } => GitCommands::update(args),
-    };
-
-    match result {
-        Ok(git_command) => match git_command {
-            GitCommandResult::Success => std::process::exit(0),
-            GitCommandResult::Error => std::process::exit(1),
-        },
-        Err(e) => {
-            Print::error(&format!("{}", e));
-            std::process::exit(1)
-        }
-    }
-}
-
-fn run_hook(hook: &HookSubcommands) -> Result<GitCommandResult> {
-    match hook {
-        HookSubcommands::Precommit {} => todo!(),
     }
 }

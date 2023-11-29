@@ -6,27 +6,28 @@ pub(crate) struct Print();
 
 impl Print {
     /// print to `stdout` in blue
-    pub(crate) fn blue_stdout(message: &str, lock: &mut StdoutLock) {
+    pub(crate) fn stdout_blue(message: &str, lock: &mut StdoutLock) {
         match stdout().is_terminal() {
             true => Self::stdout(&[Color::Blue.bold().paint(message)], lock),
             false => writeln!(lock, "{}", message).unwrap(),
         }
     }
 
-    /// print to `stderr` in blue
-    pub(crate) fn blue_stderr(message: &str) {
-        match stdout().is_terminal() {
-            true => Self::stderr(&[Color::Blue.bold().paint(message)]),
-            false => eprintln!("{}", message),
-        }
+    /// print to `stderr` in purple
+    pub(crate) fn stderr_purple(message: &str) {
+        Self::stderr_color(message, Color::Purple)
     }
 
-    /// print to `stderr` in red
+    /// print Error message to `stderr`
     pub(crate) fn error(message: &str) {
         let message: String = "Error: ".to_owned() + message;
 
+        Self::stderr_color(&message, Color::Red)
+    }
+
+    fn stderr_color(message: &str, color: Color) {
         match stderr().is_terminal() {
-            true => Self::stderr(&[Color::Red.bold().paint(message)]),
+            true => Self::stderr(&[color.bold().paint(message)]),
             false => eprintln!("{}", message),
         }
     }
