@@ -1,7 +1,7 @@
-use super::command_runner::{CommandRunner, DefaultMaxCount, GitResult};
+use super::command_runner::{CommandRunner, GitResult};
 use crate::print::Print;
 use anyhow::{anyhow, Context};
-use log::debug;
+use log::{debug, trace};
 use std::{
     io::{self, StdoutLock, Write},
     process::Command,
@@ -33,6 +33,7 @@ const FORCE_COLOR: &str = "--color=always";
 
 impl GitCommands {
     pub fn aac(args: &[String]) -> GitResult {
+        trace!("aac() called with: {:#?}", args);
         CommandRunner::check_for_staged_files()?;
 
         // equivalent to `git add --all && git commit`
@@ -53,6 +54,7 @@ impl GitCommands {
     }
 
     pub fn add(args: &[String]) -> GitResult {
+        trace!("add() called with: {:#?}", args);
         if args.is_empty() {
             CommandRunner::check_for_staged_files()?;
 
@@ -83,7 +85,7 @@ impl GitCommands {
 
     /// list configured aliases, optionally filtering on those containing `filter`
     pub fn alias(filter: Option<&str>) -> GitResult {
-        debug!("_alias_ called with: {:#?}", filter);
+        trace!("alias() called with: {:#?}", filter);
 
         let output = {
             Command::new("git")
@@ -134,6 +136,7 @@ impl GitCommands {
     }
 
     pub fn auc(args: &[String]) -> GitResult {
+        trace!("auc() called with: {:#?}", args);
         CommandRunner::check_for_staged_files()?;
 
         // equivalent to `git add --all && git commit`
@@ -154,6 +157,7 @@ impl GitCommands {
     }
 
     pub fn author(num: Option<u8>) -> GitResult {
+        trace!("author() called with: {:#?}", num);
         CommandRunner::execute_git_command(GitCommand {
             subcommand: "rebase",
             default_args: &[
@@ -165,37 +169,47 @@ impl GitCommands {
         })
     }
 
-    pub fn last(args: &[String]) -> GitResult {
-        debug!("_last_ called with: {:#?}", args);
+    pub fn last(num: Option<u8>, args: &[String]) -> GitResult {
+        trace!("last() called with: {:#?}, {:#?}", num, args);
 
-        CommandRunner::parse_for_max_count_and_execute(
-            GitCommand {
-                subcommand: "log",
-                default_args: &[FORCE_COLOR, "--compact-summary"],
-                user_args: args,
-            },
-            DefaultMaxCount(1),
-        )
+        CommandRunner::execute_git_command(GitCommand {
+            subcommand: "log",
+            default_args: &[
+                FORCE_COLOR,
+                "--compact-summary",
+                &format!("--max-count={}", num.unwrap_or(1)),
+            ],
+            user_args: args,
+        })
     }
 
-    pub fn log_oneline(args: &[String]) -> GitResult {
-        debug!("_log_oneline_ called with: {:#?}", args);
+    pub fn log_oneline(num: Option<u8>, args: &[String]) -> GitResult {
+        trace!("log_oneline() called with: {:#?}", num);
 
-        CommandRunner::parse_for_max_count_and_execute(
-            GitCommand {
-                subcommand: "log",
-                default_args: &[
-                    FORCE_COLOR,
-                    "--pretty='%C(yellow)%h %C(magenta)%as %C(blue)%aL %C(cyan)%s%C(reset)'",
-                ],
-                user_args: args,
-            },
-            DefaultMaxCount(25),
-        )
+        CommandRunner::execute_git_command(GitCommand {
+            subcommand: "log",
+            default_args: &[
+                FORCE_COLOR,
+                "--pretty='%C(yellow)%h %C(magenta)%as %C(blue)%aL %C(cyan)%s%C(reset)'",
+                &format!("--max-count={}", num.unwrap_or(25)),
+            ],
+            user_args: args,
+        })
+    }
+
+    pub fn pass_through(args: &[String]) -> GitResult {
+        trace!("<pass_through> called with: {:#?}", args);
+        debug_assert!(!args.is_empty());
+
+        CommandRunner::execute_git_command(GitCommand {
+            subcommand: &args[0],
+            default_args: &[],
+            user_args: if args.len() > 1 { &args[1..] } else { &[] },
+        })
     }
 
     pub fn restore(args: &[String]) -> GitResult {
-        debug!("_restore_ called with: {:#?}", args);
+        trace!("restore() called with: {:#?}", args);
 
         CommandRunner::execute_git_command(GitCommand {
             subcommand: "restore",
@@ -205,7 +219,7 @@ impl GitCommands {
     }
 
     pub fn restore_all() -> GitResult {
-        debug!("_restore_all_ called");
+        trace!("restore_all() called");
 
         CommandRunner::execute_git_command(GitCommand {
             subcommand: "restore",
@@ -214,34 +228,36 @@ impl GitCommands {
         })
     }
 
-    pub fn show(args: &[String]) -> GitResult {
-        debug!("_last_ called with: {:#?}", args);
+    pub fn show(num: Option<u8>, args: &[String]) -> GitResult {
+        trace!("show() called with: {:#?}", num);
 
-        CommandRunner::parse_for_max_count_and_execute(
-            GitCommand {
-                subcommand: "show",
-                default_args: &[FORCE_COLOR, "--expand-tabs=4"],
-                user_args: args,
-            },
-            DefaultMaxCount(1),
-        )
+        CommandRunner::execute_git_command(GitCommand {
+            subcommand: "show",
+            default_args: &[
+                FORCE_COLOR,
+                "--expand-tabs=4",
+                &format!("--max-count={}", num.unwrap_or(1)),
+            ],
+            user_args: args,
+        })
     }
 
-    pub fn show_files(args: &[String]) -> GitResult {
-        debug!("_show_files_ called with: {:#?}", args);
+    pub fn show_files(num: Option<u8>) -> GitResult {
+        trace!("show_files() called with: {:#?}", num);
 
-        CommandRunner::parse_for_max_count_and_execute(
-            GitCommand {
-                subcommand: "show",
-                default_args: &["--pretty=", "--name-only"],
-                user_args: args,
-            },
-            DefaultMaxCount(1),
-        )
+        CommandRunner::execute_git_command(GitCommand {
+            subcommand: "show",
+            default_args: &[
+                "--pretty=",
+                "--name-only",
+                &format!("--max-count={}", num.unwrap_or(1)),
+            ],
+            user_args: &[],
+        })
     }
 
     pub fn undo(num: Option<u8>) -> GitResult {
-        debug!("undo called with: {:#?}", num);
+        trace!("undo() called with: {:#?}", num);
 
         CommandRunner::execute_git_command(GitCommand {
             subcommand: "reset",
@@ -251,7 +267,8 @@ impl GitCommands {
     }
 
     pub fn unstage(args: &[String]) -> GitResult {
-        debug!("_unstage_ called with: {:#?}", args);
+        trace!("unstage() called with: {:#?}", args);
+        debug_assert!(!args.is_empty());
 
         CommandRunner::execute_git_command(GitCommand {
             subcommand: "restore",
@@ -261,7 +278,7 @@ impl GitCommands {
     }
 
     pub fn unstage_all() -> GitResult {
-        debug!("_update_all_ called");
+        debug!("update_all() called");
 
         CommandRunner::execute_git_command(GitCommand {
             subcommand: "restore",
@@ -271,16 +288,13 @@ impl GitCommands {
     }
 
     pub fn update(branch: &String) -> GitResult {
-        debug!("_update_ called with: {:#?}", branch);
+        debug!("update() called with: {:#?}", branch);
+        debug_assert!(!branch.is_empty());
 
-        if branch.is_empty() {
-            Err(anyhow!("must provide a branch name"))
-        } else {
-            CommandRunner::execute_git_command(GitCommand {
-                subcommand: "fetch",
-                default_args: &["origin"],
-                user_args: &[format!("{0}:{0}", branch)],
-            })
-        }
+        CommandRunner::execute_git_command(GitCommand {
+            subcommand: "fetch",
+            default_args: &["origin"],
+            user_args: &[format!("{0}:{0}", branch)],
+        })
     }
 }
