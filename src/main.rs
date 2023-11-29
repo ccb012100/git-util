@@ -2,10 +2,12 @@ use anyhow::Result;
 use clap::error::ErrorKind;
 use clap::{CommandFactory, Parser};
 use cli::{Cli, HookSubcommands, Subcommands};
-use git::commands::{GitCommandResult, GitCommands, PRINT_COMMAND as GIT_PRINT_COMMAND};
+use git::{commands::GitCommands, GitConfigOpts};
 use log::{debug, info, LevelFilter};
 use print::Print;
 use std::sync::atomic::Ordering;
+
+use crate::git::{GitCommandResult, PRINT_COMMAND as GIT_PRINT_COMMAND};
 
 mod cli;
 mod git;
@@ -75,12 +77,22 @@ fn parse_subcommand(subcommand: &Subcommands) -> Result<GitCommandResult, anyhow
     match subcommand {
         Subcommands::A { args } => GitCommands::add(args),
         Subcommands::Aac { args } => GitCommands::aac(args),
-        Subcommands::Alias { args } => match args.is_empty() {
-            true => GitCommands::alias(None),
-            false => GitCommands::alias(Some(args.join(" ").as_str())),
-        },
+        Subcommands::Alias { filter, options } => GitCommands::alias(
+            filter.as_deref(),
+            GitConfigOpts {
+                show_origin: options.show_origin,
+                show_scope: options.show_scope,
+            },
+        ),
         Subcommands::Auc { args } => GitCommands::auc(args),
         Subcommands::Author { num } => GitCommands::author(*num),
+        Subcommands::Conf { filter, options } => GitCommands::conf(
+            filter.as_deref(),
+            GitConfigOpts {
+                show_origin: options.show_origin,
+                show_scope: options.show_scope,
+            },
+        ),
         Subcommands::Hook { hook } => run_hook(hook),
         Subcommands::Files { num } => GitCommands::show_files(*num),
         Subcommands::L { num, args } => GitCommands::log_oneline(*num, args),

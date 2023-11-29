@@ -30,6 +30,17 @@ pub(crate) struct CliOptions {
     pub(crate) print_command: bool,
 }
 
+#[derive(Args, Debug, Clone, Copy)]
+pub(crate) struct GitConfigOpts {
+    /// show value's scope
+    #[arg(long, short = 's', action = clap::ArgAction::Set)]
+    pub(crate) show_scope: bool,
+
+    /// show value's origin
+    #[arg(long, short = 'o', action = clap::ArgAction::Set)]
+    pub(crate) show_origin: bool,
+}
+
 #[derive(Subcommand, Debug)]
 pub(crate) enum Subcommands {
     /// Wrapper around git-add
@@ -45,10 +56,12 @@ pub(crate) enum Subcommands {
         args: Vec<String>,
     },
     /// List configured aliases
-    #[command(allow_hyphen_values = true)]
     Alias {
-        /// Command arguments
-        args: Vec<String>,
+        /// text to filter on
+        filter: Option<String>,
+
+        #[clap(flatten)]
+        options: GitConfigOpts,
     },
     /// Add updated files and then commit
     #[clap(alias = "ac")]
@@ -61,6 +74,14 @@ pub(crate) enum Subcommands {
     Author {
         /// Number of commits to reset (else defaults to 1)
         num: Option<u8>,
+    },
+    /// List config settings (excluding aliases)
+    Conf {
+        /// Text to filter on
+        filter: Option<String>,
+
+        #[clap(flatten)]
+        options: GitConfigOpts,
     },
     /// Call git hook
     Hook {

@@ -1,5 +1,5 @@
-use super::commands::{GitCommand, GitCommandResult};
-use crate::{git::commands::PRINT_COMMAND, print::Print};
+use super::{commands::GitCommand, GitCommandResult};
+use crate::git::print_command;
 use anyhow::{anyhow, Context, Result};
 use log::{debug, trace};
 use std::process::Command;
@@ -58,9 +58,7 @@ impl CommandRunner {
         let mut command = Command::new("git");
         command.args(&command_args);
 
-        if PRINT_COMMAND.load(std::sync::atomic::Ordering::SeqCst) {
-            Print::blue_stderr(&format!("command: {:?}", command));
-        }
+        print_command(&command);
 
         let x: std::process::ExitStatus = command
             .status()

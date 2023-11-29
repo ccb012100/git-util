@@ -1,17 +1,21 @@
-use super::command_runner::{CommandRunner, GitResult};
-use crate::print::Print;
+use super::{
+    command_runner::{CommandRunner, GitResult},
+    GitConfigOpts,
+};
+use crate::{
+    git::{print_command, GitCommandResult},
+    print::Print,
+};
 use anyhow::{anyhow, Context};
 use log::{debug, trace};
 use std::{
     io::{self, StdoutLock, Write},
     process::Command,
-    sync::atomic::AtomicBool,
 };
 
-/// Flag to indicate whether or not to print the Git commands executed
-pub static PRINT_COMMAND: AtomicBool = AtomicBool::new(false);
-
-pub struct GitCommands();
+/// Use with `diff`, `show`, `log`, and `grep` commands to set `--color=always`.
+/// This will force color, but `isatty()` will still be false.
+const FORCE_COLOR: &str = "--color=always";
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct GitCommand<'a> {
@@ -20,16 +24,7 @@ pub struct GitCommand<'a> {
     pub user_args: &'a [String],
 }
 
-/// Outcome of running a Git command; used to set exit code at end
-#[derive(Debug)]
-pub enum GitCommandResult {
-    Success,
-    Error,
-}
-
-/// Use with diff, show, log, grep commands to set `--color=always`.
-/// This will force color, but `isatty()` will still be false.
-const FORCE_COLOR: &str = "--color=always";
+pub struct GitCommands();
 
 impl GitCommands {
     pub fn aac(args: &[String]) -> GitResult {
@@ -84,15 +79,24 @@ impl GitCommands {
     }
 
     /// list configured aliases, optionally filtering on those containing `filter`
-    pub fn alias(filter: Option<&str>) -> GitResult {
+    pub fn alias(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
         trace!("alias() called with: {:#?}", filter);
 
-        let output = {
-            Command::new("git")
-                .args(["config", "--get-regexp", r"^alias\."])
-                .output()
-                .with_context(|| "Failed to execute git command")
-        }?;
+        let mut config_args: Vec<&str> = vec!["config"];
+
+        parse_config_options(options, &mut config_args);
+
+        // this arg has to be last
+        config_args.push(r"--get-regexp ^alias\.");
+
+        let mut command = Command::new("git");
+        command.args(&config_args);
+
+        print_command(&command);
+
+        let output = command
+            .output()
+            .with_context(|| "Failed to execute git command")?;
 
         match output.status.success() {
             true => {
@@ -110,17 +114,70 @@ impl GitCommands {
                         output_lines
                             .filter_map(|line| {
                                 if line.to_uppercase().contains(&term_upper) {
-                                    Some(line.replace("alias.", ""))
+                                    // remove "alias." from beginning of line
+                                    Some(&line[6..])
                                 } else {
                                     None
                                 }
                             })
-                            .for_each(|x| print_fn(&x, &mut lock));
+                            .for_each(|x| print_fn(x, &mut lock));
                     }
                     None => {
                         output_lines
                             .map(|line| line.replace("alias.", ""))
                             .for_each(|x| print_fn(&x, &mut lock));
+                    }
+                }
+            }
+            false => io::stdout().write_all(&output.stdout)?,
+        }
+
+        io::stderr().write_all(&output.stderr)?;
+
+        match output.status.success() {
+            true => Ok(GitCommandResult::Success),
+            false => Ok(GitCommandResult::Error),
+        }
+    }
+
+    /// list configuration settings (excluding aliases), optionally filtering on those containing `filter`
+    pub fn conf(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
+        trace!("conf() called with: {:#?}", filter);
+
+        let mut config_args: Vec<&str> = vec!["config", "--list"];
+
+        parse_config_options(options, &mut config_args);
+
+        let mut command = Command::new("git");
+        command.args(&config_args);
+
+        print_command(&command);
+
+        let output = command
+            .output()
+            .with_context(|| "Failed to execute git command")?;
+
+        match output.status.success() {
+            true => {
+                let output = String::from_utf8(output.stdout)?;
+                let output_lines = output.lines();
+
+                let mut lock: io::StdoutLock<'_> = io::stdout().lock();
+
+                let print_fn: fn(&str, &mut StdoutLock) = Print::blue_stdout;
+
+                let config_lines = output_lines.filter(|config| !config.starts_with("alias."));
+
+                match filter {
+                    Some(f) => {
+                        let term_upper = f.to_uppercase();
+
+                        config_lines
+                            .filter(|line| line.to_uppercase().contains(&term_upper))
+                            .for_each(|x| print_fn(x, &mut lock));
+                    }
+                    None => {
+                        config_lines.for_each(|x| print_fn(x, &mut lock));
                     }
                 }
             }
@@ -296,5 +353,14 @@ impl GitCommands {
             default_args: &["origin"],
             user_args: &[format!("{0}:{0}", branch)],
         })
+    }
+}
+
+fn parse_config_options(options: GitConfigOpts, config_args: &mut Vec<&str>) {
+    if options.show_origin {
+        config_args.push("--show-origin")
+    }
+    if options.show_scope {
+        config_args.push("--show-scope")
     }
 }
