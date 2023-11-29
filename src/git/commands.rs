@@ -18,7 +18,7 @@ use std::{
 const FORCE_COLOR: &str = "--color=always";
 
 /// This is defined here in a `const` so that it's easy to keep all usages in sync
-const PRINT_CONFIG_OPTION: fn(&str, &mut StdoutLock) = Print::blue_stdout;
+const PRINT_CONFIG_OPTION: fn(&str, &mut StdoutLock) = Print::stdout_blue;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct GitCommand<'a> {

@@ -25,6 +25,6 @@ pub(crate) struct GitConfigOpts {
 /// Print `command` to `stderr`
 pub(crate) fn print_command(command: &Command) {
     if PRINT_COMMAND.load(std::sync::atomic::Ordering::SeqCst) {
-        Print::blue_stderr(&format!("command: {:?}", command));
+        Print::stderr_purple(&format!("command: {:?}", command));
     }
 }
