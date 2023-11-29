@@ -90,7 +90,8 @@ impl GitCommands {
         parse_config_options(options, &mut config_args);
 
         // this arg has to be last
-        config_args.push(r"--get-regexp ^alias\.");
+        config_args.push("--get-regexp");
+        config_args.push(r"^alias\.");
 
         let mut command = Command::new("git");
         command.args(&config_args);
