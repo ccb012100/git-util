@@ -5,15 +5,15 @@ use log::{debug, trace};
 use std::process::Command;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct DefaultMaxCount(pub u8);
+pub(crate) struct DefaultMaxCount(pub u8);
 
-pub type GitResult = Result<GitCommandResult>;
+pub(crate) type GitResult = Result<GitCommandResult>;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct CommandRunner();
+pub(crate) struct CommandRunner();
 
 impl CommandRunner {
-    pub fn check_for_staged_files() -> GitResult {
+    pub(crate) fn check_for_staged_files() -> GitResult {
         trace!("check_for_staged_files() called");
         let output: std::process::Output = Command::new("git")
             .args(["diff", "--staged", "--name-only"])
@@ -28,7 +28,7 @@ impl CommandRunner {
     }
 
     /// Execute `git` command with the supplied arguments
-    pub fn execute_git_command(command: GitCommand) -> GitResult {
+    pub(crate) fn execute_git_command(command: GitCommand) -> GitResult {
         trace!("execute_git_command() called with: {:#?}", command);
 
         let mut command_args: Vec<&str> = match command.subcommand {

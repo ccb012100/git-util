@@ -21,16 +21,16 @@ const FORCE_COLOR: &str = "--color=always";
 const PRINT_CONFIG_OPTION: fn(&str, &mut StdoutLock) = Print::stdout_blue;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct GitCommand<'a> {
-    pub subcommand: &'a str,
-    pub default_args: &'a [&'a str],
-    pub user_args: &'a [String],
+pub(crate) struct GitCommand<'a> {
+    pub(crate) subcommand: &'a str,
+    pub(crate) default_args: &'a [&'a str],
+    pub(crate) user_args: &'a [String],
 }
 
-pub struct GitCommands();
+pub(crate) struct GitCommands();
 
 impl GitCommands {
-    pub fn aac(args: &[String]) -> GitResult {
+    pub(crate) fn aac(args: &[String]) -> GitResult {
         trace!("aac() called with: {:#?}", args);
         CommandRunner::check_for_staged_files()?;
 
@@ -51,7 +51,7 @@ impl GitCommands {
         }
     }
 
-    pub fn add(args: &[String]) -> GitResult {
+    pub(crate) fn add(args: &[String]) -> GitResult {
         trace!("add() called with: {:#?}", args);
         if args.is_empty() {
             CommandRunner::check_for_staged_files()?;
@@ -82,7 +82,7 @@ impl GitCommands {
     }
 
     /// list configured aliases, optionally filtering on those containing `filter`
-    pub fn alias(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
+    pub(crate) fn alias(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
         trace!("alias() called with: {:#?}", filter);
 
         let mut config_args: Vec<&str> = vec!["config"];
@@ -143,7 +143,7 @@ impl GitCommands {
     }
 
     /// list configuration settings (excluding aliases), optionally filtering on those containing `filter`
-    pub fn conf(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
+    pub(crate) fn conf(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
         trace!("conf() called with: {:#?}", filter);
 
         let mut config_args: Vec<&str> = vec!["config", "--list"];
@@ -192,7 +192,7 @@ impl GitCommands {
         }
     }
 
-    pub fn auc(args: &[String]) -> GitResult {
+    pub(crate) fn auc(args: &[String]) -> GitResult {
         trace!("auc() called with: {:#?}", args);
         CommandRunner::check_for_staged_files()?;
 
@@ -213,7 +213,7 @@ impl GitCommands {
         }
     }
 
-    pub fn author(num: Option<u8>) -> GitResult {
+    pub(crate) fn author(num: Option<u8>) -> GitResult {
         trace!("author() called with: {:#?}", num);
         CommandRunner::execute_git_command(GitCommand {
             subcommand: "rebase",
@@ -226,7 +226,7 @@ impl GitCommands {
         })
     }
 
-    pub fn last(num: Option<u8>, args: &[String]) -> GitResult {
+    pub(crate) fn last(num: Option<u8>, args: &[String]) -> GitResult {
         trace!("last() called with: {:#?}, {:#?}", num, args);
 
         CommandRunner::execute_git_command(GitCommand {
@@ -240,7 +240,7 @@ impl GitCommands {
         })
     }
 
-    pub fn log_oneline(num: Option<u8>, args: &[String]) -> GitResult {
+    pub(crate) fn log_oneline(num: Option<u8>, args: &[String]) -> GitResult {
         trace!("log_oneline() called with: {:#?}", num);
 
         CommandRunner::execute_git_command(GitCommand {
@@ -254,7 +254,7 @@ impl GitCommands {
         })
     }
 
-    pub fn pass_through(args: &[String]) -> GitResult {
+    pub(crate) fn pass_through(args: &[String]) -> GitResult {
         trace!("<pass_through> called with: {:#?}", args);
         debug_assert!(!args.is_empty());
 
@@ -265,7 +265,7 @@ impl GitCommands {
         })
     }
 
-    pub fn restore(args: &[String]) -> GitResult {
+    pub(crate) fn restore(args: &[String]) -> GitResult {
         trace!("restore() called with: {:#?}", args);
 
         CommandRunner::execute_git_command(GitCommand {
@@ -275,7 +275,7 @@ impl GitCommands {
         })
     }
 
-    pub fn restore_all() -> GitResult {
+    pub(crate) fn restore_all() -> GitResult {
         trace!("restore_all() called");
 
         CommandRunner::execute_git_command(GitCommand {
@@ -285,7 +285,7 @@ impl GitCommands {
         })
     }
 
-    pub fn show(num: Option<u8>, args: &[String]) -> GitResult {
+    pub(crate) fn show(num: Option<u8>, args: &[String]) -> GitResult {
         trace!("show() called with: {:#?}", num);
 
         CommandRunner::execute_git_command(GitCommand {
@@ -299,7 +299,7 @@ impl GitCommands {
         })
     }
 
-    pub fn show_files(num: Option<u8>) -> GitResult {
+    pub(crate) fn show_files(num: Option<u8>) -> GitResult {
         trace!("show_files() called with: {:#?}", num);
 
         CommandRunner::execute_git_command(GitCommand {
@@ -313,7 +313,7 @@ impl GitCommands {
         })
     }
 
-    pub fn undo(num: Option<u8>) -> GitResult {
+    pub(crate) fn undo(num: Option<u8>) -> GitResult {
         trace!("undo() called with: {:#?}", num);
 
         CommandRunner::execute_git_command(GitCommand {
@@ -323,7 +323,7 @@ impl GitCommands {
         })
     }
 
-    pub fn unstage(args: &[String]) -> GitResult {
+    pub(crate) fn unstage(args: &[String]) -> GitResult {
         trace!("unstage() called with: {:#?}", args);
         debug_assert!(!args.is_empty());
 
@@ -334,7 +334,7 @@ impl GitCommands {
         })
     }
 
-    pub fn unstage_all() -> GitResult {
+    pub(crate) fn unstage_all() -> GitResult {
         debug!("update_all() called");
 
         CommandRunner::execute_git_command(GitCommand {
@@ -344,7 +344,7 @@ impl GitCommands {
         })
     }
 
-    pub fn update(branch: &String) -> GitResult {
+    pub(crate) fn update(branch: &String) -> GitResult {
         debug!("update() called with: {:#?}", branch);
         debug_assert!(!branch.is_empty());
 
