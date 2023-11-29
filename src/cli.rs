@@ -33,11 +33,11 @@ pub(crate) struct CliOptions {
 #[derive(Args, Debug, Clone, Copy)]
 pub(crate) struct GitConfigOpts {
     /// show value's scope
-    #[arg(long, short = 's', action = clap::ArgAction::Set)]
+    #[arg(long, short = 's', action = clap::ArgAction::Set, default_value_t = false)]
     pub(crate) show_scope: bool,
 
     /// show value's origin
-    #[arg(long, short = 'o', action = clap::ArgAction::Set)]
+    #[arg(long, short = 'o', action = clap::ArgAction::Set, default_value_t = false)]
     pub(crate) show_origin: bool,
 }
 
