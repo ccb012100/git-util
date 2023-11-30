@@ -21,7 +21,7 @@ fn main() -> ! {
     #[cfg(windows)]
     {
         log::info!("On Windows; enabling ansi support...");
-        nu_ansi_term::enable_ansi_support();
+        nu_ansi_term::enable_ansi_support().unwrap();
     }
 
     debug!("parsed Cli: {:#?}", &cli);
