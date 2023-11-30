@@ -350,7 +350,7 @@ impl GitCommands {
 
         CommandRunner::execute_git_command(GitCommand {
             subcommand: "fetch",
-            default_args: &["origin"],
+            default_args: &["--verbose", "origin"],
             user_args: &[format!("{0}:{0}", branch)],
         })
     }
