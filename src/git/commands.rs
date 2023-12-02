@@ -165,41 +165,52 @@ impl GitCommands {
         let git = new_command_with_args("git", &config_args)
             .stdout(Stdio::piped())
             .spawn()
-            .with_context(|| "Failed to execute git command")?;
-
-        let git_output = git.stdout.with_context(|| "Failed to spawn git")?;
+            .with_context(|| "Failed to execute git command")?
+            .stdout
+            .with_context(|| "Failed to spawn git")?;
 
         // filter out config entries that start with "alias."
         // `rg -v ^alias\.`
-        let filtered_configs = new_command_with_args("rg", &["--invert-match", r"^alias\."])
-            .stdin(Stdio::from(git_output))
+        let rg = new_command_with_args("rg", &["--invert-match", r"^alias\."])
+            .stdin(Stdio::from(git))
             .stdout(Stdio::piped())
             .spawn()
             .with_context(|| "Failed to spawn ripgrep")?
             .stdout
             .with_context(|| "Failed to open ripgrep stdout")?;
 
-        let filtered_output: ChildStdout = match filter {
+        let rg: ChildStdout = match filter {
             Some(pattern) => {
                 // filter on `filter`
                 // `rg --fixed-strings FILTER`
                 new_command_with_args("rg", &["--fixed-strings", pattern])
-                    .stdin(Stdio::from(filtered_configs))
+                    .stdin(Stdio::from(rg))
                     .stdout(Stdio::piped())
                     .spawn()
                     .with_context(|| "Failed to spawn ripgrep")?
                     .stdout
                     .with_context(|| "Failed to open ripgrep stdout")?
             }
-            None => filtered_configs,
+            None => rg,
         };
 
         // format as a table, using equals sign as the separator
         // `column --table --separator =`
-        new_command_with_args("column", &["--table", "--separator", "="])
-            .stdin(Stdio::from(filtered_output))
+        let column = new_command_with_args("column", &["--table", "--separator", "="])
+            .stdin(Stdio::from(rg))
+            .stdout(Stdio::piped())
             .spawn()
-            .with_context(|| "Failed to pipe to column")?;
+            .with_context(|| "Failed to pipe to column")?
+            .wait_with_output()
+            .with_context(|| "Failed to get column output")?;
+
+        io::stdout()
+            .write_all(&column.stdout)
+            .with_context(|| "Failed to write column output to stdout")?;
+
+        io::stderr()
+            .write_all(&column.stdout)
+            .with_context(|| "Failed to write column output to stderr")?;
 
         Ok(GitCommandResult::Success)
     }
