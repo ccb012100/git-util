@@ -193,11 +193,6 @@ impl GitCommands {
 
         // format as a table, using equals sign as the separator
         // `column --table --separator =`
-        let mut column = Command::new("column");
-        column.arg("--table");
-
-        print_command(&column);
-
         new_command_with_args("column", &["--table", "--separator", "="])
             .stdin(Stdio::from(filtered_output))
             .stdout(io::stdout())
