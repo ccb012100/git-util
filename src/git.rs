@@ -22,7 +22,7 @@ pub(crate) struct GitConfigOpts {
     pub(crate) show_scope: bool,
 }
 
-/// Print `command` to `stderr`
+/// Print `command` to `stderr` if `PRINT_COMMAND` has been set
 pub(crate) fn print_command(command: &Command) {
     if PRINT_COMMAND.load(std::sync::atomic::Ordering::SeqCst) {
         Print::stderr_purple(&format!("command: {:?}", command));

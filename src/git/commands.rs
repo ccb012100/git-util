@@ -2,23 +2,17 @@ use super::{
     command_runner::{CommandRunner, GitResult},
     GitConfigOpts,
 };
-use crate::{
-    git::{print_command, GitCommandResult},
-    print::Print,
-};
+use crate::git::{print_command, GitCommandResult};
 use anyhow::{anyhow, Context};
 use log::{debug, trace};
 use std::{
-    io::{self, StdoutLock, Write},
-    process::Command,
+    io::{self},
+    process::{ChildStdout, Command, Stdio},
 };
 
 /// Use with `diff`, `show`, `log`, and `grep` commands to set `--color=always`.
 /// This will force color, but `isatty()` will still be false.
 const FORCE_COLOR: &str = "--color=always";
-
-/// This is defined here in a `const` so that it's easy to keep all usages in sync
-const PRINT_CONFIG_OPTION: fn(&str, &mut StdoutLock) = Print::stdout_blue;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct GitCommand<'a> {
@@ -85,7 +79,7 @@ impl GitCommands {
     pub(crate) fn alias(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
         trace!("alias() called with: {:#?}", filter);
 
-        let mut config_args: Vec<&str> = vec!["config"];
+        let mut config_args = vec!["config"];
 
         parse_config_options(options, &mut config_args);
 
@@ -93,103 +87,124 @@ impl GitCommands {
         config_args.push("--get-regexp");
         config_args.push(r"^alias\.");
 
-        let mut command = Command::new("git");
-        command.args(&config_args);
-
-        print_command(&command);
-
-        let output = command
-            .output()
+        // get Git config values that start with "alias."
+        // `git --get-regexp ^alias\.`
+        let git = new_command_with_args("git", &config_args)
+            .stdout(Stdio::piped())
+            .spawn()
             .with_context(|| "Failed to execute git command")?;
 
-        match output.status.success() {
-            true => {
-                let output = String::from_utf8(output.stdout)?;
-                let output_lines = output.lines();
+        let git_output = git.stdout.with_context(|| "Failed to spawn git")?;
 
-                let mut lock: io::StdoutLock<'_> = io::stdout().lock();
+        // strip out the initial "alias." from the config name
+        // `sed 's/^alias\.//'`
+        let sed = new_command_with_arg("sed", r"s/^alias\.//")
+            .stdin(Stdio::from(git_output))
+            .stdout(Stdio::piped())
+            .spawn()
+            .with_context(|| "Failed to spawn sed")?;
 
-                match filter {
-                    Some(f) => {
-                        let term_upper = f.to_uppercase();
+        let stripped_output = sed.stdout.with_context(|| "Failed to open sed stdout")?;
 
-                        output_lines
-                            .filter_map(|line| {
-                                if line.to_uppercase().contains(&term_upper) {
-                                    // remove "alias." from beginning of line
-                                    Some(&line[6..])
-                                } else {
-                                    None
-                                }
-                            })
-                            .for_each(|x| PRINT_CONFIG_OPTION(x, &mut lock));
-                    }
-                    None => {
-                        output_lines
-                            .map(|line| line.replace("alias.", ""))
-                            .for_each(|x| PRINT_CONFIG_OPTION(&x, &mut lock));
-                    }
-                }
+        let filtered_output: ChildStdout = match filter {
+            Some(pattern) => {
+                // filter on `filter`
+                // `rg --fixed-strings FILTER`
+                new_command_with_args("rg", &["--fixed-strings", pattern])
+                    .stdin(Stdio::from(stripped_output))
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .with_context(|| "Failed to spawn sed")?
+                    .stdout
+                    .with_context(|| "Failed to open ripgrep stdout")?
             }
-            false => io::stdout().write_all(&output.stdout)?,
-        }
+            None => stripped_output,
+        };
 
-        io::stderr().write_all(&output.stderr)?;
+        // replace the first space (which separates the alias name and value) with a semicolon
+        // `sed 's/ /\;/'`
+        let sed = new_command_with_arg("sed", r"s/ /\;/")
+            .stdin(Stdio::from(filtered_output))
+            .stdout(Stdio::piped())
+            .spawn()
+            .with_context(|| "Failed to spawn sed")?;
 
-        match output.status.success() {
-            true => Ok(GitCommandResult::Success),
-            false => Ok(GitCommandResult::Error),
-        }
+        let sed_output = sed
+            .stdout
+            .with_context(|| "Failed to open sed stdout from sed pipe")?;
+
+        // format as a table, using semicolon as the separator
+        // `column --table --separator ';'`
+        let mut column = Command::new("column");
+        column.arg("--table");
+
+        print_command(&column);
+
+        new_command_with_args("column", &["--table", "--separator", ";"])
+            .stdin(Stdio::from(sed_output))
+            .stdout(io::stdout())
+            .spawn()
+            .with_context(|| "Failed to pipe to column")?;
+
+        Ok(GitCommandResult::Success)
     }
 
     /// list configuration settings (excluding aliases), optionally filtering on those containing `filter`
     pub(crate) fn conf(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
         trace!("conf() called with: {:#?}", filter);
 
-        let mut config_args: Vec<&str> = vec!["config", "--list"];
+        let mut config_args = vec!["config", "--list"];
 
         parse_config_options(options, &mut config_args);
 
-        let mut command = Command::new("git");
-        command.args(&config_args);
-
-        print_command(&command);
-
-        let output = command
-            .output()
+        // get Git config values that start with "alias."
+        // `git --get-regexp ^alias\.`
+        let git = new_command_with_args("git", &config_args)
+            .stdout(Stdio::piped())
+            .spawn()
             .with_context(|| "Failed to execute git command")?;
 
-        match output.status.success() {
-            true => {
-                let output = String::from_utf8(output.stdout)?;
-                let output_lines = output.lines();
+        let git_output = git.stdout.with_context(|| "Failed to spawn git")?;
 
-                let mut lock: io::StdoutLock<'_> = io::stdout().lock();
+        // filter out config entries that start with "alias."
+        // `rg -v ^alias\.`
+        let filtered_configs = new_command_with_args("rg", &["--invert-match", r"^alias\."])
+            .stdin(Stdio::from(git_output))
+            .stdout(Stdio::piped())
+            .spawn()
+            .with_context(|| "Failed to spawn ripgrep")?
+            .stdout
+            .with_context(|| "Failed to open ripgrep stdout")?;
 
-                let config_lines = output_lines.filter(|config| !config.starts_with("alias."));
-
-                match filter {
-                    Some(f) => {
-                        let term_upper = f.to_uppercase();
-
-                        config_lines
-                            .filter(|line| line.to_uppercase().contains(&term_upper))
-                            .for_each(|x| PRINT_CONFIG_OPTION(x, &mut lock));
-                    }
-                    None => {
-                        config_lines.for_each(|x| PRINT_CONFIG_OPTION(x, &mut lock));
-                    }
-                }
+        let filtered_output: ChildStdout = match filter {
+            Some(pattern) => {
+                // filter on `filter`
+                // `rg --fixed-strings FILTER`
+                new_command_with_args("rg", &["--fixed-strings", pattern])
+                    .stdin(Stdio::from(filtered_configs))
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .with_context(|| "Failed to spawn ripgrep")?
+                    .stdout
+                    .with_context(|| "Failed to open ripgrep stdout")?
             }
-            false => io::stdout().write_all(&output.stdout)?,
-        }
+            None => filtered_configs,
+        };
 
-        io::stderr().write_all(&output.stderr)?;
+        // format as a table, using equals sign as the separator
+        // `column --table --separator =`
+        let mut column = Command::new("column");
+        column.arg("--table");
 
-        match output.status.success() {
-            true => Ok(GitCommandResult::Success),
-            false => Ok(GitCommandResult::Error),
-        }
+        print_command(&column);
+
+        new_command_with_args("column", &["--table", "--separator", "="])
+            .stdin(Stdio::from(filtered_output))
+            .stdout(io::stdout())
+            .spawn()
+            .with_context(|| "Failed to pipe to column")?;
+
+        Ok(GitCommandResult::Success)
     }
 
     pub(crate) fn auc(args: &[String]) -> GitResult {
@@ -363,4 +378,19 @@ fn parse_config_options(options: GitConfigOpts, config_args: &mut Vec<&str>) {
     if options.show_scope {
         config_args.push("--show-scope")
     }
+}
+
+/// This is mainly a convenience function so that we can print the command
+fn new_command_with_args<'a>(command: &'a str, args: &'a [&'a str]) -> Command {
+    let mut cmd = Command::new(command);
+    cmd.args(args);
+    print_command(&cmd);
+    cmd
+}
+
+fn new_command_with_arg<'a>(command: &'a str, arg: &'a str) -> Command {
+    let mut cmd = Command::new(command);
+    cmd.arg(arg);
+    print_command(&cmd);
+    cmd
 }
