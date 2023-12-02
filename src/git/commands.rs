@@ -6,7 +6,7 @@ use crate::git::{print_command, GitCommandResult};
 use anyhow::{anyhow, Context};
 use log::{debug, trace};
 use std::{
-    io::{self},
+    io::{self, Write},
     process::{ChildStdout, Command, Stdio},
 };
 
@@ -89,62 +89,65 @@ impl GitCommands {
 
         // get Git config values that start with "alias."
         // `git --get-regexp ^alias\.`
-        let git = new_command_with_args("git", &config_args)
+        let git_output = new_command_with_args("git", &config_args)
             .stdout(Stdio::piped())
             .spawn()
-            .with_context(|| "Failed to execute git command")?;
-
-        let git_output = git.stdout.with_context(|| "Failed to spawn git")?;
+            .with_context(|| "Failed to execute git command")?
+            .stdout
+            .with_context(|| "Failed to spawn git")?;
 
         // strip out the initial "alias." from the config name
         // `sed 's/^alias\.//'`
-        let sed = new_command_with_arg("sed", r"s/^alias\.//")
+        let sed_output = new_command_with_arg("sed", r"s/^alias\.//")
             .stdin(Stdio::from(git_output))
             .stdout(Stdio::piped())
             .spawn()
-            .with_context(|| "Failed to spawn sed")?;
-
-        let stripped_output = sed.stdout.with_context(|| "Failed to open sed stdout")?;
+            .with_context(|| "Failed to spawn sed")?
+            .stdout
+            .with_context(|| "Failed to open sed stdout")?;
 
         let filtered_output: ChildStdout = match filter {
             Some(pattern) => {
                 // filter on `filter`
                 // `rg --fixed-strings FILTER`
                 new_command_with_args("rg", &["--fixed-strings", pattern])
-                    .stdin(Stdio::from(stripped_output))
+                    .stdin(Stdio::from(sed_output))
                     .stdout(Stdio::piped())
                     .spawn()
                     .with_context(|| "Failed to spawn sed")?
                     .stdout
                     .with_context(|| "Failed to open ripgrep stdout")?
             }
-            None => stripped_output,
+            None => sed_output,
         };
 
         // replace the first space (which separates the alias name and value) with a semicolon
         // `sed 's/ /\;/'`
-        let sed = new_command_with_arg("sed", r"s/ /\;/")
+        let sed_output = new_command_with_arg("sed", r"s/ /\;/")
             .stdin(Stdio::from(filtered_output))
             .stdout(Stdio::piped())
             .spawn()
-            .with_context(|| "Failed to spawn sed")?;
-
-        let sed_output = sed
+            .with_context(|| "Failed to spawn sed")?
             .stdout
             .with_context(|| "Failed to open sed stdout from sed pipe")?;
 
         // format as a table, using semicolon as the separator
         // `column --table --separator ';'`
-        let mut column = Command::new("column");
-        column.arg("--table");
-
-        print_command(&column);
-
-        new_command_with_args("column", &["--table", "--separator", ";"])
+        let column_output = new_command_with_args("column", &["--table", "--separator", ";"])
             .stdin(Stdio::from(sed_output))
-            .stdout(io::stdout())
+            .stdout(Stdio::piped())
             .spawn()
-            .with_context(|| "Failed to pipe to column")?;
+            .with_context(|| "Failed to pipe to column")?
+            .wait_with_output()
+            .with_context(|| "Failed to get column output")?;
+
+        io::stdout()
+            .write_all(&column_output.stdout)
+            .with_context(|| "Failed to write column output to stdout")?;
+
+        io::stderr()
+            .write_all(&column_output.stdout)
+            .with_context(|| "Failed to write column output to stderr")?;
 
         Ok(GitCommandResult::Success)
     }
@@ -195,7 +198,6 @@ impl GitCommands {
         // `column --table --separator =`
         new_command_with_args("column", &["--table", "--separator", "="])
             .stdin(Stdio::from(filtered_output))
-            .stdout(io::stdout())
             .spawn()
             .with_context(|| "Failed to pipe to column")?;
 
