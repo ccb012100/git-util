@@ -2,23 +2,17 @@ use super::{
     command_runner::{CommandRunner, GitResult},
     GitConfigOpts,
 };
-use crate::{
-    git::{print_command, GitCommandResult},
-    print::Print,
-};
+use crate::git::{print_command, GitCommandResult};
 use anyhow::{anyhow, Context};
 use log::{debug, trace};
 use std::{
-    io::{self, StdoutLock, Write},
+    io::{self},
     process::{ChildStdout, Command, Stdio},
 };
 
 /// Use with `diff`, `show`, `log`, and `grep` commands to set `--color=always`.
 /// This will force color, but `isatty()` will still be false.
 const FORCE_COLOR: &str = "--color=always";
-
-/// This is defined here in a `const` so that it's easy to keep all usages in sync
-const PRINT_CONFIG_OPTION: fn(&str, &mut StdoutLock) = Print::stdout_blue;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct GitCommand<'a> {
@@ -140,7 +134,7 @@ impl GitCommands {
             .with_context(|| "Failed to open sed stdout from sed pipe")?;
 
         // format as a table, using semicolon as the separator
-        // `column --table --separator`
+        // `column --table --separator ';'`
         let mut column = Command::new("column");
         column.arg("--table");
 
@@ -159,50 +153,58 @@ impl GitCommands {
     pub(crate) fn conf(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
         trace!("conf() called with: {:#?}", filter);
 
-        let mut config_args: Vec<&str> = vec!["config", "--list"];
+        let mut config_args = vec!["config", "--list"];
 
         parse_config_options(options, &mut config_args);
 
-        let mut command = Command::new("git");
-        command.args(&config_args);
-
-        print_command(&command);
-
-        let output = command
-            .output()
+        // get Git config values that start with "alias."
+        // `git --get-regexp ^alias\.`
+        let git = new_command_with_args("git", &config_args)
+            .stdout(Stdio::piped())
+            .spawn()
             .with_context(|| "Failed to execute git command")?;
 
-        match output.status.success() {
-            true => {
-                let output = String::from_utf8(output.stdout)?;
-                let output_lines = output.lines();
+        let git_output = git.stdout.with_context(|| "Failed to spawn git")?;
 
-                let mut lock: io::StdoutLock<'_> = io::stdout().lock();
+        // filter out config entries that start with "alias."
+        // `rg -v ^alias\.`
+        let filtered_configs = new_command_with_args("rg", &["--invert-match", r"^alias\."])
+            .stdin(Stdio::from(git_output))
+            .stdout(Stdio::piped())
+            .spawn()
+            .with_context(|| "Failed to spawn ripgrep")?
+            .stdout
+            .with_context(|| "Failed to open ripgrep stdout")?;
 
-                let config_lines = output_lines.filter(|config| !config.starts_with("alias."));
-
-                match filter {
-                    Some(f) => {
-                        let term_upper = f.to_uppercase();
-
-                        config_lines
-                            .filter(|line| line.to_uppercase().contains(&term_upper))
-                            .for_each(|x| PRINT_CONFIG_OPTION(x, &mut lock));
-                    }
-                    None => {
-                        config_lines.for_each(|x| PRINT_CONFIG_OPTION(x, &mut lock));
-                    }
-                }
+        let filtered_output: ChildStdout = match filter {
+            Some(pattern) => {
+                // filter on `filter`
+                // `rg --fixed-strings FILTER`
+                new_command_with_args("rg", &["--fixed-strings", pattern])
+                    .stdin(Stdio::from(filtered_configs))
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .with_context(|| "Failed to spawn ripgrep")?
+                    .stdout
+                    .with_context(|| "Failed to open ripgrep stdout")?
             }
-            false => io::stdout().write_all(&output.stdout)?,
-        }
+            None => filtered_configs,
+        };
 
-        io::stderr().write_all(&output.stderr)?;
+        // format as a table, using equals sign as the separator
+        // `column --table --separator =`
+        let mut column = Command::new("column");
+        column.arg("--table");
 
-        match output.status.success() {
-            true => Ok(GitCommandResult::Success),
-            false => Ok(GitCommandResult::Error),
-        }
+        print_command(&column);
+
+        new_command_with_args("column", &["--table", "--separator", "="])
+            .stdin(Stdio::from(filtered_output))
+            .stdout(io::stdout())
+            .spawn()
+            .with_context(|| "Failed to pipe to column")?;
+
+        Ok(GitCommandResult::Success)
     }
 
     pub(crate) fn auc(args: &[String]) -> GitResult {
