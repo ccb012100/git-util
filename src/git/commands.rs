@@ -31,7 +31,7 @@ impl GitCommands {
         // equivalent to `git add --all && git commit`
         let result: GitCommandResult = CommandRunner::execute_git_command(GitCommand {
             subcommand: "add",
-            default_args: &[&"--all"],
+            default_args: &["--all"],
             user_args: &[],
         })?;
 
@@ -53,14 +53,14 @@ impl GitCommands {
             // equivalent to `git add --update && git status --short`
             let result: GitCommandResult = CommandRunner::execute_git_command(GitCommand {
                 subcommand: "add",
-                default_args: &[&"--update"],
+                default_args: &["--update"],
                 user_args: &[],
             })?;
 
             match result {
                 GitCommandResult::Success => CommandRunner::execute_git_command(GitCommand {
                     subcommand: "status", // force color for `status` subcommand
-                    default_args: &[&"--short"],
+                    default_args: &["--short"],
                     user_args: &[],
                 }),
                 GitCommandResult::Error => Err(anyhow!("git add --update returned an error")),
@@ -214,7 +214,7 @@ impl GitCommands {
         // equivalent to `git add --all && git commit`
         let result: GitCommandResult = CommandRunner::execute_git_command(GitCommand {
             subcommand: "add",
-            default_args: &[&"--update"],
+            default_args: &["--update"],
             user_args: &[],
         })?;
 
