@@ -1,4 +1,4 @@
-use super::{commands::GitCommand, GitCommandResult};
+use super::{commands::GitCommand, GitCommandResult, GitConfigOpts};
 use crate::git::print_command;
 use anyhow::{anyhow, Context, Result};
 use log::{debug, trace};
@@ -55,10 +55,7 @@ impl CommandRunner {
 
         debug!("parsed command args: {:#?}", command_args);
 
-        let mut command = Command::new("git");
-        command.args(&command_args);
-
-        print_command(&command);
+        let mut command = Self::new_command_with_args("git", &command_args);
 
         let x: std::process::ExitStatus = command
             .status()
@@ -69,5 +66,29 @@ impl CommandRunner {
         } else {
             Ok(GitCommandResult::Error)
         }
+    }
+
+    pub(crate) fn parse_config_options(options: GitConfigOpts, config_args: &mut Vec<&str>) {
+        if options.show_origin {
+            config_args.push("--show-origin")
+        }
+        if options.show_scope {
+            config_args.push("--show-scope")
+        }
+    }
+
+    /// This is mainly a convenience function so that we can print the command
+    pub(crate) fn new_command_with_args<'a>(command: &'a str, args: &'a [&'a str]) -> Command {
+        let mut cmd = Command::new(command);
+        cmd.args(args);
+        print_command(&cmd);
+        cmd
+    }
+
+    pub(crate) fn new_command_with_arg<'a>(command: &'a str, arg: &'a str) -> Command {
+        let mut cmd = Command::new(command);
+        cmd.arg(arg);
+        print_command(&cmd);
+        cmd
     }
 }
