@@ -89,7 +89,7 @@ impl GitCommands {
 
         // get Git config values that start with "alias."
         // `git --get-regexp ^alias\.`
-        let git_output = new_command_with_args("git", &config_args)
+        let git = new_command_with_args("git", &config_args)
             .stdout(Stdio::piped())
             .spawn()
             .with_context(|| "Failed to execute git command")?
@@ -98,33 +98,33 @@ impl GitCommands {
 
         // strip out the initial "alias." from the config name
         // `sed 's/^alias\.//'`
-        let sed_output = new_command_with_arg("sed", r"s/^alias\.//")
-            .stdin(Stdio::from(git_output))
+        let sed = new_command_with_arg("sed", r"s/^alias\.//")
+            .stdin(Stdio::from(git))
             .stdout(Stdio::piped())
             .spawn()
             .with_context(|| "Failed to spawn sed")?
             .stdout
             .with_context(|| "Failed to open sed stdout")?;
 
-        let filtered_output: ChildStdout = match filter {
+        let rg: ChildStdout = match filter {
             Some(pattern) => {
                 // filter on `filter`
                 // `rg --fixed-strings FILTER`
                 new_command_with_args("rg", &["--fixed-strings", pattern])
-                    .stdin(Stdio::from(sed_output))
+                    .stdin(Stdio::from(sed))
                     .stdout(Stdio::piped())
                     .spawn()
                     .with_context(|| "Failed to spawn sed")?
                     .stdout
                     .with_context(|| "Failed to open ripgrep stdout")?
             }
-            None => sed_output,
+            None => sed,
         };
 
         // replace the first space (which separates the alias name and value) with a semicolon
         // `sed 's/ /\;/'`
-        let sed_output = new_command_with_arg("sed", r"s/ /\;/")
-            .stdin(Stdio::from(filtered_output))
+        let sed = new_command_with_arg("sed", r"s/ /\;/")
+            .stdin(Stdio::from(rg))
             .stdout(Stdio::piped())
             .spawn()
             .with_context(|| "Failed to spawn sed")?
@@ -133,8 +133,8 @@ impl GitCommands {
 
         // format as a table, using semicolon as the separator
         // `column --table --separator ';'`
-        let column_output = new_command_with_args("column", &["--table", "--separator", ";"])
-            .stdin(Stdio::from(sed_output))
+        let column = new_command_with_args("column", &["--table", "--separator", ";"])
+            .stdin(Stdio::from(sed))
             .stdout(Stdio::piped())
             .spawn()
             .with_context(|| "Failed to pipe to column")?
@@ -142,14 +142,48 @@ impl GitCommands {
             .with_context(|| "Failed to get column output")?;
 
         io::stdout()
-            .write_all(&column_output.stdout)
+            .write_all(&column.stdout)
             .with_context(|| "Failed to write column output to stdout")?;
 
         io::stderr()
-            .write_all(&column_output.stdout)
+            .write_all(&column.stdout)
             .with_context(|| "Failed to write column output to stderr")?;
 
         Ok(GitCommandResult::Success)
+    }
+
+    pub(crate) fn auc(args: &[String]) -> GitResult {
+        trace!("auc() called with: {:#?}", args);
+        CommandRunner::check_for_staged_files()?;
+
+        // equivalent to `git add --all && git commit`
+        let result: GitCommandResult = CommandRunner::execute_git_command(GitCommand {
+            subcommand: "add",
+            default_args: &["--update"],
+            user_args: &[],
+        })?;
+
+        match result {
+            GitCommandResult::Success => CommandRunner::execute_git_command(GitCommand {
+                subcommand: "commit", // force color for `status` subcommand
+                default_args: &[],
+                user_args: args,
+            }),
+            GitCommandResult::Error => Err(anyhow!("git add --update returned an error")),
+        }
+    }
+
+    pub(crate) fn author(num: Option<u8>) -> GitResult {
+        trace!("author() called with: {:#?}", num);
+        CommandRunner::execute_git_command(GitCommand {
+            subcommand: "rebase",
+            default_args: &[
+                &format!("HEAD~{}", num.unwrap_or(1)),
+                "-x",
+                "git commit --amend --no-edit --reset-author",
+            ],
+            user_args: &[],
+        })
     }
 
     /// list configuration settings (excluding aliases), optionally filtering on those containing `filter`
@@ -213,40 +247,6 @@ impl GitCommands {
             .with_context(|| "Failed to write column output to stderr")?;
 
         Ok(GitCommandResult::Success)
-    }
-
-    pub(crate) fn auc(args: &[String]) -> GitResult {
-        trace!("auc() called with: {:#?}", args);
-        CommandRunner::check_for_staged_files()?;
-
-        // equivalent to `git add --all && git commit`
-        let result: GitCommandResult = CommandRunner::execute_git_command(GitCommand {
-            subcommand: "add",
-            default_args: &["--update"],
-            user_args: &[],
-        })?;
-
-        match result {
-            GitCommandResult::Success => CommandRunner::execute_git_command(GitCommand {
-                subcommand: "commit", // force color for `status` subcommand
-                default_args: &[],
-                user_args: args,
-            }),
-            GitCommandResult::Error => Err(anyhow!("git add --update returned an error")),
-        }
-    }
-
-    pub(crate) fn author(num: Option<u8>) -> GitResult {
-        trace!("author() called with: {:#?}", num);
-        CommandRunner::execute_git_command(GitCommand {
-            subcommand: "rebase",
-            default_args: &[
-                &format!("HEAD~{}", num.unwrap_or(1)),
-                "-x",
-                "git commit --amend --no-edit --reset-author",
-            ],
-            user_args: &[],
-        })
     }
 
     pub(crate) fn last(num: Option<u8>, args: &[String]) -> GitResult {
