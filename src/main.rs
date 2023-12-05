@@ -2,12 +2,15 @@ use anyhow::Result;
 use clap::error::ErrorKind;
 use clap::{CommandFactory, Parser};
 use cli::{Cli, HookSubcommands, Subcommands};
-use git::{commands::GitCommands, GitConfigOpts};
+use git::{
+    commands::{immutable::ImmutableCommands, mutable::MutableCommands},
+    GitConfigOpts,
+};
 use log::{debug, info, LevelFilter};
 use print::Print;
 use std::sync::atomic::Ordering;
 
-use crate::git::{GitCommandResult, PRINT_COMMAND as GIT_PRINT_COMMAND};
+use crate::git::{Git, GitCommandResult, PRINT_COMMAND as GIT_PRINT_COMMAND};
 
 mod cli;
 mod git;
@@ -29,7 +32,7 @@ fn main() -> ! {
     GIT_PRINT_COMMAND.store(cli.options.print_command, Ordering::Relaxed);
 
     let result = if let Some(args) = &cli.fallback {
-        GitCommands::pass_through(args)
+        Git::pass_through(args)
     } else if let Some(subcommand) = &cli.subcommand {
         parse_subcommand(subcommand)
     } else {
@@ -75,18 +78,18 @@ fn initialize_logger(verbosity: &u8) {
 
 fn parse_subcommand(subcommand: &Subcommands) -> Result<GitCommandResult, anyhow::Error> {
     match subcommand {
-        Subcommands::A { args } => GitCommands::add(args),
-        Subcommands::Aac { args } => GitCommands::aac(args),
-        Subcommands::Alias { filter, options } => GitCommands::alias(
+        Subcommands::A { args } => MutableCommands::add(args),
+        Subcommands::Aac { args } => MutableCommands::add_all_and_commit(args),
+        Subcommands::Alias { filter, options } => ImmutableCommands::list_aliases(
             filter.as_deref(),
             GitConfigOpts {
                 show_origin: options.show_origin,
                 show_scope: options.show_scope,
             },
         ),
-        Subcommands::Auc { args } => GitCommands::auc(args),
-        Subcommands::Author { num } => GitCommands::author(*num),
-        Subcommands::Conf { filter, options } => GitCommands::conf(
+        Subcommands::Auc { args } => MutableCommands::add_updated_files_and_commit(args),
+        Subcommands::Author { num } => MutableCommands::update_commit_author(*num),
+        Subcommands::Conf { filter, options } => ImmutableCommands::list_configuration_settings(
             filter.as_deref(),
             GitConfigOpts {
                 show_origin: options.show_origin,
@@ -94,29 +97,29 @@ fn parse_subcommand(subcommand: &Subcommands) -> Result<GitCommandResult, anyhow
             },
         ),
         Subcommands::Hook { hook } => run_hook(hook),
-        Subcommands::Files { num } => GitCommands::show_files(*num),
-        Subcommands::L { num, args } => GitCommands::log_oneline(*num, args),
-        Subcommands::Last { num, args } => GitCommands::last(*num, args),
-        Subcommands::Show { num, args } => GitCommands::show(*num, args),
+        Subcommands::Files { num } => ImmutableCommands::show_files(*num),
+        Subcommands::L { num, args } => ImmutableCommands::one_line_log(*num, args),
+        Subcommands::Last { num, args } => ImmutableCommands::compact_summary_log(*num, args),
+        Subcommands::Show { num, args } => ImmutableCommands::show(*num, args),
         Subcommands::Restore { which, args } => {
             if let Some(all) = which {
                 match all {
-                    cli::WhichFiles::All => GitCommands::restore_all(),
+                    cli::WhichFiles::All => MutableCommands::restore_all(),
                 }
             } else {
-                GitCommands::restore(args)
+                MutableCommands::restore(args)
             }
         }
-        Subcommands::Undo { num } => GitCommands::undo(*num),
+        Subcommands::Undo { num } => MutableCommands::undo_commits(*num),
         Subcommands::Unstage { which, args } => {
             if let Some(which) = which {
                 match which {
-                    cli::WhichFiles::All => GitCommands::unstage_all(),
+                    cli::WhichFiles::All => MutableCommands::unstage_all(),
                 }
             } else {
-                GitCommands::unstage(args)
+                MutableCommands::unstage(args)
             }
         }
-        Subcommands::Update { args } => GitCommands::update(args),
+        Subcommands::Update { args } => MutableCommands::update_branch_from_remote(args),
     }
 }
