@@ -97,10 +97,6 @@ impl ImmutableCommands {
             .write_all(&column.stdout)
             .with_context(|| "Failed to write column output to stdout")?;
 
-        io::stderr()
-            .write_all(&column.stdout)
-            .with_context(|| "Failed to write column output to stderr")?;
-
         Ok(GitCommandResult::Success)
     }
 
@@ -159,10 +155,6 @@ impl ImmutableCommands {
         io::stdout()
             .write_all(&column.stdout)
             .with_context(|| "Failed to write column output to stdout")?;
-
-        io::stderr()
-            .write_all(&column.stdout)
-            .with_context(|| "Failed to write column output to stderr")?;
 
         Ok(GitCommandResult::Success)
     }
