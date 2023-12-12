@@ -89,7 +89,7 @@ impl ImmutableCommands {
             .stdin(Stdio::from(sed))
             .stdout(Stdio::piped())
             .spawn()
-            .with_context(|| "Failed to pipe to column")?
+            .with_context(|| "Failed to spawn column")?
             .wait_with_output()
             .with_context(|| "Failed to get column output")?;
 
