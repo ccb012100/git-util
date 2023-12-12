@@ -66,7 +66,7 @@ impl ImmutableCommands {
                     .stdin(Stdio::from(sed))
                     .stdout(Stdio::piped())
                     .spawn()
-                    .with_context(|| "Failed to spawn sed")?
+                    .with_context(|| "Failed to spawn rg")?
                     .stdout
                     .with_context(|| "Failed to open ripgrep stdout")?
             }
