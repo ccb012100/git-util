@@ -1,11 +1,15 @@
-use crate::git::{Git, GitCommand, FORCE_COLOR};
+use crate::commands::Commands;
 use crate::git::{GitCommandResult, GitResult};
 use crate::GitConfigOpts;
+use crate::{
+    commands::RipgrepOptions,
+    git::{Git, GitCommand, FORCE_COLOR},
+};
 use anyhow::Context;
 use log::trace;
 use std::{
     io::{self, Write},
-    process::{ChildStdout, Stdio},
+    process::{ChildStdout, Output},
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -40,58 +44,23 @@ impl ImmutableCommands {
         config_args.push(r"^alias\.");
 
         // get Git config values that start with "alias."
-        // `git --get-regexp ^alias\.`
-        let git = Git::new_command_with_args("git", &config_args)
-            .stdout(Stdio::piped())
-            .spawn()
-            .with_context(|| "Failed to execute git command")?
-            .stdout
-            .with_context(|| "Failed to spawn git")?;
+        let git = Commands::pipe_from_git(&config_args)?;
 
         // strip out the initial "alias." from the config name
-        // `sed 's/^alias\.//'`
-        let sed = Git::new_command_with_arg("sed", r"s/^alias\.//")
-            .stdin(Stdio::from(git))
-            .stdout(Stdio::piped())
-            .spawn()
-            .with_context(|| "Failed to spawn sed")?
-            .stdout
-            .with_context(|| "Failed to open sed stdout")?;
+        let sed = Commands::pipe_to_sed(git, r"s/^alias\.//")?;
 
         let rg: ChildStdout = match filter {
             Some(pattern) => {
-                // filter on `filter`
-                // `rg --fixed-strings FILTER`
-                Git::new_command_with_args("rg", &["--fixed-strings", pattern])
-                    .stdin(Stdio::from(sed))
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .with_context(|| "Failed to spawn rg")?
-                    .stdout
-                    .with_context(|| "Failed to open ripgrep stdout")?
+                // filter on `pattern`
+                Commands::pipe_to_ripgrep(sed, pattern, &[RipgrepOptions::FixedStrings])?
             }
             None => sed,
         };
 
         // replace the first space (which separates the alias name and value) with a semicolon
-        // `sed 's/ /\;/'`
-        let sed = Git::new_command_with_arg("sed", r"s/ /\;/")
-            .stdin(Stdio::from(rg))
-            .stdout(Stdio::piped())
-            .spawn()
-            .with_context(|| "Failed to spawn sed")?
-            .stdout
-            .with_context(|| "Failed to open sed stdout from sed pipe")?;
+        let sed = Commands::pipe_to_sed(rg, r"s/ /\;/")?;
 
-        // format as a table, using semicolon as the separator
-        // `column --table --separator ';'`
-        let column = Git::new_command_with_args("column", &["--table", "--separator", ";"])
-            .stdin(Stdio::from(sed))
-            .stdout(Stdio::piped())
-            .spawn()
-            .with_context(|| "Failed to spawn column")?
-            .wait_with_output()
-            .with_context(|| "Failed to get column output")?;
+        let column: Output = Commands::pipe_to_column(sed, ';')?;
 
         io::stdout()
             .write_all(&column.stdout)
@@ -109,48 +78,21 @@ impl ImmutableCommands {
         Git::parse_config_options(options, &mut config_args);
 
         // get Git config values that start with "alias."
-        // `git --get-regexp ^alias\.`
-        let git = Git::new_command_with_args("git", &config_args)
-            .stdout(Stdio::piped())
-            .spawn()
-            .with_context(|| "Failed to execute git command")?
-            .stdout
-            .with_context(|| "Failed to spawn git")?;
+        let git = Commands::pipe_from_git(&config_args)?;
 
         // filter out config entries that start with "alias."
         // `rg -v ^alias\.`
-        let rg = Git::new_command_with_args("rg", &["--invert-match", r"^alias\."])
-            .stdin(Stdio::from(git))
-            .stdout(Stdio::piped())
-            .spawn()
-            .with_context(|| "Failed to spawn ripgrep")?
-            .stdout
-            .with_context(|| "Failed to open ripgrep stdout")?;
+        let rg = Commands::pipe_to_ripgrep(git, r"^alias\.", &[RipgrepOptions::InvertMatch])?;
 
         let rg: ChildStdout = match filter {
             Some(pattern) => {
-                // filter on `filter`
-                // `rg --fixed-strings FILTER`
-                Git::new_command_with_args("rg", &["--fixed-strings", pattern])
-                    .stdin(Stdio::from(rg))
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .with_context(|| "Failed to spawn ripgrep")?
-                    .stdout
-                    .with_context(|| "Failed to open ripgrep stdout")?
+                // filter on `pattern`
+                Commands::pipe_to_ripgrep(rg, pattern, &[RipgrepOptions::FixedStrings])?
             }
             None => rg,
         };
 
-        // format as a table, using equals sign as the separator
-        // `column --table --separator =`
-        let column = Git::new_command_with_args("column", &["--table", "--separator", "="])
-            .stdin(Stdio::from(rg))
-            .stdout(Stdio::piped())
-            .spawn()
-            .with_context(|| "Failed to pipe to column")?
-            .wait_with_output()
-            .with_context(|| "Failed to get column output")?;
+        let column: Output = Commands::pipe_to_column(rg, '=')?;
 
         io::stdout()
             .write_all(&column.stdout)
