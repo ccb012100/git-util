@@ -14,6 +14,7 @@ use std::sync::atomic::Ordering;
 mod cli;
 mod git;
 mod print;
+mod commands;
 
 fn main() -> ! {
     let cli = Cli::parse();

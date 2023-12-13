@@ -1,4 +1,3 @@
-use crate::print::Print;
 use anyhow::{anyhow, Context, Result};
 use log::{debug, trace};
 use std::{process::Command, sync::atomic::AtomicBool};
@@ -44,7 +43,7 @@ pub(crate) struct GitConfigOpts {
     pub(crate) show_scope: bool,
 }
 
-impl<'a> Git {
+impl Git {
     pub(crate) fn parse_config_options(options: GitConfigOpts, config_args: &mut Vec<&str>) {
         if options.show_origin {
             config_args.push("--show-origin")
@@ -52,21 +51,6 @@ impl<'a> Git {
         if options.show_scope {
             config_args.push("--show-scope")
         }
-    }
-
-    /// This is mainly a convenience function so that we can print the command
-    pub(crate) fn new_command_with_args(command: &str, args: &'a [&'a str]) -> Command {
-        let mut cmd = Command::new(command);
-        cmd.args(args);
-        Print::print_command(&cmd);
-        cmd
-    }
-
-    pub(crate) fn new_command_with_arg(command: &str, arg: &'a str) -> Command {
-        let mut cmd = Command::new(command);
-        cmd.arg(arg);
-        Print::print_command(&cmd);
-        cmd
     }
 
     pub(crate) fn pass_through(args: &[String]) -> GitResult {
@@ -97,7 +81,7 @@ impl<'a> Git {
     }
 }
 
-impl<'a> GitCommand<'a> {
+impl GitCommand<'_> {
     /// Execute `git` command with the supplied arguments
     pub(crate) fn execute_git_command(&self) -> GitResult {
         trace!("execute_git_command() called with: {:#?}", self);
@@ -122,7 +106,7 @@ impl<'a> GitCommand<'a> {
 
         debug!("parsed command args: {:#?}", command_args);
 
-        let mut command = Git::new_command_with_args("git", &command_args);
+        let mut command = crate::commands::Commands::new_command_with_args("git", &command_args);
 
         let status: std::process::ExitStatus = command
             .status()
