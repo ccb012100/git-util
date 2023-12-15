@@ -3,7 +3,7 @@ use clap::{error::ErrorKind, CommandFactory, Parser};
 use cli::{Cli, HookSubcommands, Subcommands};
 use git::{
     commands::{immutable::ImmutableCommands, mutable::MutableCommands},
-    hooks::precommit::PrecommitHook,
+    hooks::pre_commit::PreCommitHook,
     GitConfigOpts, GitResult,
 };
 use git::{Git, GitCommandResult, PRINT_COMMAND as GIT_PRINT_COMMAND};
@@ -58,7 +58,7 @@ fn main() -> ! {
 
 fn run_hook(hook: &HookSubcommands) -> GitResult {
     match hook {
-        HookSubcommands::Precommit {} => PrecommitHook::run(),
+        HookSubcommands::PreCommit {} => PreCommitHook::run(),
     }
 }
 

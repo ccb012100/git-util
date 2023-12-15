@@ -161,8 +161,8 @@ pub(crate) enum Subcommands {
 
 #[derive(Subcommand, Debug, Clone, Copy)]
 pub(crate) enum HookSubcommands {
-    /// Precommit hook
-    Precommit {},
+    /// `pre-commit` hook
+    PreCommit {},
 }
 
 /// Specify which files to operate a command against

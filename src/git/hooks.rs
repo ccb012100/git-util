@@ -1,1 +1,1 @@
-pub(crate) mod precommit;
+pub(crate) mod pre_commit;

@@ -12,9 +12,9 @@ use crate::git::{
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct PrecommitHook {}
+pub struct PreCommitHook {}
 
-impl PrecommitHook {
+impl PreCommitHook {
     pub fn run() -> GitResult {
         info!("Running pre-commit hook");
 
