@@ -17,7 +17,7 @@ pub(crate) struct Cli {
 
 #[derive(Args, Debug, Clone, Copy)]
 pub(crate) struct CliOptions {
-    /// Set verbosity
+    /// Set verbosity; adding multiple times increases the verbosity level (>=4, i.e. `-vvvv`, sets maximum verbosity).
     #[arg(
         long,
         short = 'v',
@@ -25,18 +25,18 @@ pub(crate) struct CliOptions {
     )]
     pub(crate) verbose: u8,
 
-    /// Print the Git command that is executed
+    /// Print the `std::process::Command`s that are executed
     #[arg(long, short = 'p')]
     pub(crate) print_command: bool,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
 pub(crate) struct GitConfigOpts {
-    /// show value's scope
+    /// Show the value's scope
     #[arg(long, short = 's', action = clap::ArgAction::Set, default_value_t = false)]
     pub(crate) show_scope: bool,
 
-    /// show value's origin
+    /// Show the value's origin
     #[arg(long, short = 'o', action = clap::ArgAction::Set, default_value_t = false)]
     pub(crate) show_origin: bool,
 }
@@ -70,61 +70,61 @@ pub(crate) enum Subcommands {
         /// Command arguments
         args: Vec<String>,
     },
-    /// Reset author for last n commits
+    /// Reset author to current value of `user.author` and `user.email` for the last n commits
     Author {
         /// Number of commits to reset (else defaults to 1)
         num: Option<u8>,
     },
     /// List config settings (excluding aliases)
     Conf {
-        /// Text to filter on
+        /// The text to filter on
         filter: Option<String>,
 
         #[clap(flatten)]
         options: GitConfigOpts,
     },
-    /// Call git hook
+    /// Call a git hook
     Hook {
         #[command(subcommand)]
         hook: HookSubcommands,
     },
-    /// List files changed in last n commits
+    /// List the files that changed in the last n commits
     #[clap(alias = "shf")]
     Files {
-        /// number of commits to list files for (else defaults to 1)
+        /// The number of commits to list files for (else defaults to 1)
         num: Option<u8>,
     },
-    /// git-log, formatted to 1 line per commit
+    /// Wrapper around `git-log`, formatted to 1 line per commit
     #[command(allow_hyphen_values = true)]
     L {
-        /// number of commits to list (else defaults to 25)
+        /// The number of commits to list (else defaults to 25)
         num: Option<u8>,
 
         /// Command arguments
         args: Vec<String>,
     },
-    /// git-log, compact summary (commit message and list of changed files)
+    /// Wrapper around `git-log --compact-summary` (commit message and list of changed files)
     #[clap(alias = "la")]
     #[command(allow_hyphen_values = true)]
     Last {
-        /// number of commits to list (else defaults to 10)
+        /// The number of commits to list (else defaults to 10)
         num: Option<u8>,
 
         /// Command arguments
         args: Vec<String>,
     },
-    /// git-restore
+    /// Wrapper around `git-restore`
     #[clap(alias = "rest")]
     #[command(allow_hyphen_values = true)]
     Restore {
-        /// which files to operate on
+        /// Which files to operate on
         #[command(subcommand)]
         which: Option<WhichFiles>,
 
         /// Command arguments
         args: Vec<String>,
     },
-    /// git-show
+    /// Wrapper around `git-show`
     #[command(allow_hyphen_values = true)]
     #[clap(alias = "sh")]
     Show {
@@ -134,12 +134,12 @@ pub(crate) enum Subcommands {
         /// Command arguments
         args: Vec<String>,
     },
-    /// Reset last commit or last n commits and keeps undone changes in working directory
+    /// Reset the last commit or the last n commits and keep the undone changes in working directory
     Undo {
-        /// number of commits to undo (else defaults to 1)
+        /// The number of commits to undo (else defaults to 1)
         num: Option<u8>,
     },
-    /// Move staged files back to staging area; alias for `git-restore --staged`
+    /// Move staged files back to staging area; wrapper around `git-restore --staged`
     #[clap(alias = "u")]
     #[command(allow_hyphen_values = true)]
     Unstage {
@@ -165,6 +165,7 @@ pub(crate) enum HookSubcommands {
     Precommit {},
 }
 
+/// Specify which files to operate a command against
 #[derive(Subcommand, Debug, Clone, Copy)]
 pub(crate) enum WhichFiles {
     All,
