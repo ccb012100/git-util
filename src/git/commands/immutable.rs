@@ -1,10 +1,9 @@
-use crate::commands::Commands;
 use crate::git::{GitCommandResult, GitResult};
-use crate::GitConfigOpts;
 use crate::{
-    commands::RipgrepOptions,
-    git::{Git, GitCommand, FORCE_COLOR},
+    commands::ripgrep::{Ripgrep, RipgrepOptions},
+    git::{Git, GitCommand},
 };
+use crate::{commands::Commands, git::GitConfigOpts};
 use anyhow::Context;
 use log::trace;
 use std::{
@@ -16,13 +15,13 @@ use std::{
 pub struct ImmutableCommands();
 
 impl ImmutableCommands {
+    /// `git log --compact-summary --max-count=NUM ARGS`
     pub fn compact_summary_log(num: Option<u8>, args: &[String]) -> GitResult {
         trace!("last() called with: {:#?}, {:#?}", num, args);
 
         GitCommand {
             subcommand: "log",
             default_args: &[
-                FORCE_COLOR,
                 "--compact-summary",
                 &format!("--max-count={}", num.unwrap_or(1)),
             ],
@@ -44,26 +43,27 @@ impl ImmutableCommands {
         config_args.push(r"^alias\.");
 
         // get Git config values that start with "alias."
-        let git = Commands::pipe_from_git(&config_args)?;
+        let aliases = Commands::pipe_from_command("git", &config_args)?;
 
         // strip out the initial "alias." from the config name
-        let sed = Commands::pipe_to_sed(git, r"s/^alias\.//")?;
+        let aliases = Commands::double_ended_pipe("git", aliases, &[r"s/^alias\.//"])?;
 
-        let rg: ChildStdout = match filter {
+        let filtered_aliases: ChildStdout = match filter {
             Some(pattern) => {
                 // filter on `pattern`
-                Commands::pipe_to_ripgrep(sed, pattern, &[RipgrepOptions::FixedStrings])?
+                Ripgrep::double_ended_pipe(aliases, pattern, Some(&[RipgrepOptions::FixedStrings]))?
             }
-            None => sed,
+            None => aliases,
         };
 
         // replace the first space (which separates the alias name and value) with a semicolon
-        let sed = Commands::pipe_to_sed(rg, r"s/ /\;/")?;
+        let delimited_aliases =
+            Commands::double_ended_pipe("sed", filtered_aliases, &[r"s/ /\;/"])?;
 
-        let column: Output = Commands::pipe_to_column(sed, ';')?;
+        let aliases_table: Output = Commands::pipe_to_column(delimited_aliases, ';')?;
 
         io::stdout()
-            .write_all(&column.stdout)
+            .write_all(&aliases_table.stdout)
             .with_context(|| "Failed to write column output to stdout")?;
 
         Ok(GitCommandResult::Success)
@@ -78,36 +78,41 @@ impl ImmutableCommands {
         Git::parse_config_options(options, &mut config_args);
 
         // get Git config values that start with "alias."
-        let git = Commands::pipe_from_git(&config_args)?;
+        let configs = Commands::pipe_from_command("git", &config_args)?;
 
         // filter out config entries that start with "alias."
         // `rg -v ^alias\.`
-        let rg = Commands::pipe_to_ripgrep(git, r"^alias\.", &[RipgrepOptions::InvertMatch])?;
+        let configs_no_aliases =
+            Ripgrep::double_ended_pipe(configs, r"^alias\.", Some(&[RipgrepOptions::InvertMatch]))?;
 
-        let rg: ChildStdout = match filter {
+        let filtered_configs: ChildStdout = match filter {
             Some(pattern) => {
                 // filter on `pattern`
-                Commands::pipe_to_ripgrep(rg, pattern, &[RipgrepOptions::FixedStrings])?
+                Ripgrep::double_ended_pipe(
+                    configs_no_aliases,
+                    pattern,
+                    Some(&[RipgrepOptions::FixedStrings]),
+                )?
             }
-            None => rg,
+            None => configs_no_aliases,
         };
 
-        let column: Output = Commands::pipe_to_column(rg, '=')?;
+        let config_table: Output = Commands::pipe_to_column(filtered_configs, '=')?;
 
         io::stdout()
-            .write_all(&column.stdout)
+            .write_all(&config_table.stdout)
             .with_context(|| "Failed to write column output to stdout")?;
 
         Ok(GitCommandResult::Success)
     }
 
+    /// `git log --pretty='%C(yellow)%h %C(magenta)%as %C(blue)%aL %C(cyan)%s%C(reset)' --max-count=NUM ARGS`
     pub fn one_line_log(num: Option<u8>, args: &[String]) -> GitResult {
         trace!("log_oneline() called with: {:#?}", num);
 
         GitCommand {
             subcommand: "log",
             default_args: &[
-                FORCE_COLOR,
                 "--pretty='%C(yellow)%h %C(magenta)%as %C(blue)%aL %C(cyan)%s%C(reset)'",
                 &format!("--max-count={}", num.unwrap_or(25)),
             ],
@@ -116,13 +121,13 @@ impl ImmutableCommands {
         .execute_git_command()
     }
 
+    /// `git show --expand-tabs=4 --max-count=NUM ARGS`
     pub fn show(num: Option<u8>, args: &[String]) -> GitResult {
         trace!("show() called with: {:#?}", num);
 
         GitCommand {
             subcommand: "show",
             default_args: &[
-                FORCE_COLOR,
                 "--expand-tabs=4",
                 &format!("--max-count={}", num.unwrap_or(1)),
             ],
@@ -131,6 +136,7 @@ impl ImmutableCommands {
         .execute_git_command()
     }
 
+    /// `git show --pretty='' --name-only --max-count=NUM`
     pub fn show_files(num: Option<u8>) -> GitResult {
         trace!("show_files() called with: {:#?}", num);
 

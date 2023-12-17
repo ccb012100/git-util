@@ -1,6 +1,11 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use log::{debug, trace};
-use std::{process::Command, sync::atomic::AtomicBool};
+use std::{
+    io::{stdout, IsTerminal},
+    sync::atomic::AtomicBool,
+};
+
+use crate::commands::Commands;
 
 pub(crate) mod commands;
 pub(crate) mod env_vars;
@@ -9,12 +14,8 @@ pub(crate) mod hooks;
 pub(crate) type GitResult = Result<GitCommandResult>;
 pub(crate) struct Git();
 
-/// Flag to indicate whether or not to print the Git commands executed
-pub(crate) static PRINT_COMMAND: AtomicBool = AtomicBool::new(false);
-
-/// Use with `diff`, `show`, `log`, and `grep` commands to set `--color=always`.
-/// This will force color, but `isatty()` will still be false.
-const FORCE_COLOR: &str = "--color=always";
+/// Flag to indicate whether or not to print the commands executed
+pub(crate) static PRINT_COMMANDS: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(super) struct DefaultMaxCount(pub u8);
@@ -66,17 +67,18 @@ impl Git {
         command.execute_git_command()
     }
 
+    /// Return success if
     pub(crate) fn verify_staging_area_is_empty() -> GitResult {
         trace!("check_for_staged_files() called");
-        let output: std::process::Output = Command::new("git")
-            .args(["diff", "--staged", "--name-only"])
-            .output()
-            .with_context(|| "Failed to execute git command")?;
+        let output: std::process::Output =
+            Commands::new_command_with_args("git", &["diff", "--staged", "--name-only"])
+                .output()
+                .with_context(|| "Failed to execute git command")?;
 
-        if !output.stdout.is_empty() {
-            Err(anyhow!("there are already staged files!"))
-        } else {
+        if output.stdout.is_empty() {
             Ok(GitCommandResult::Success)
+        } else {
+            Ok(GitCommandResult::Error)
         }
     }
 }
@@ -86,12 +88,11 @@ impl GitCommand<'_> {
     pub(crate) fn execute_git_command(&self) -> GitResult {
         trace!("execute_git_command() called with: {:#?}", self);
 
-        let mut command_args: Vec<&str> = match self.subcommand {
-            "status" | "reset" => {
-                // To be parsed correctly by git, "-c", "color.ui=always", and the subcommand must be passed as separate args
-                vec!["-c", "color.ui=always", self.subcommand]
-            }
-            _ => vec![self.subcommand],
+        let mut command_args: Vec<&str> = match stdout().is_terminal() {
+            /* Force color on subcommands that support it.
+             * Note that this will force color, but `isatty()` will still be false. */
+            true => vec!["-c", "color.ui=always", self.subcommand],
+            false => vec![self.subcommand],
         };
 
         if !self.default_args.is_empty() {
@@ -106,13 +107,10 @@ impl GitCommand<'_> {
 
         debug!("parsed command args: {:#?}", command_args);
 
-        let mut command = crate::commands::Commands::new_command_with_args("git", &command_args);
-
-        let status: std::process::ExitStatus = command
-            .status()
-            .with_context(|| format!("Failed to execute git command: {:?}", command))?;
-
-        if status.success() {
+        if Commands::new_command_with_args("git", &command_args)
+            .status()?
+            .success()
+        {
             Ok(GitCommandResult::Success)
         } else {
             Ok(GitCommandResult::Error)
