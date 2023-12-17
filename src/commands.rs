@@ -1,24 +1,12 @@
+use crate::print::Print;
 use anyhow::{Context, Result};
 use std::process::{ChildStdout, Command, Output, Stdio};
 
-use crate::print::Print;
+pub(crate) mod ripgrep;
 
 pub(crate) struct Commands();
 
-pub(crate) enum RipgrepOptions {
-    InvertMatch,
-    FixedStrings,
-}
-
 impl Commands {
-    /// This is mainly a convenience function so that we can print the command
-    pub(crate) fn new_command_with_arg(command: &str, arg: &str) -> Command {
-        let mut cmd = Command::new(command);
-        cmd.arg(arg);
-        Print::print_command(&cmd);
-        cmd
-    }
-
     /// This is mainly a convenience function so that we can print the command
     pub(crate) fn new_command_with_args(command: &str, args: &[&str]) -> Command {
         let mut cmd = Command::new(command);
@@ -43,56 +31,32 @@ impl Commands {
         .with_context(|| "Failed to get column output")
     }
 
-    /// filter `input` on fixed string `pattern` with ripgrep
+    /// Pipe `input` to `command` with `arg` and pipe `command` to stdin
     ///
-    /// `rg --fixed-strings PATTERN`
-    pub(crate) fn pipe_to_ripgrep(
+    /// `INPUT | COMMAND ARG | ...`
+    pub(crate) fn double_ended_pipe(
+        command: &str,
         input: ChildStdout,
-        pattern: &str,
-        options: &[RipgrepOptions],
+        args: &[&str],
     ) -> Result<ChildStdout> {
-        let mut rg_options: Vec<&str> = Vec::new();
-
-        for opt in options {
-            match opt {
-                RipgrepOptions::InvertMatch => rg_options.push("--invert-match"),
-                RipgrepOptions::FixedStrings => rg_options.push("--fixed-strings"),
-            }
-        }
-
-        rg_options.push(pattern);
-
-        Self::new_command_with_args("rg", &rg_options)
+        Self::new_command_with_args(command, args)
             .stdin(Stdio::from(input))
             .stdout(Stdio::piped())
             .spawn()
-            .with_context(|| "Failed to spawn ripgrep")?
+            .with_context(|| format!("Failed to spawn {command}"))?
             .stdout
-            .with_context(|| "Failed to open ripgrep stdout")
+            .with_context(|| format!("Failed to open stdout from {command} pipe"))
     }
 
-    /// Call `sed` with `pattern`
+    /// Call `command` with arguments from `args` and pipe output to stdin
     ///
-    /// `sed PATTERN`
-    pub(crate) fn pipe_to_sed(input: ChildStdout, pattern: &str) -> Result<ChildStdout> {
-        Self::new_command_with_arg("sed", pattern)
-            .stdin(Stdio::from(input))
+    /// `COMMAND ARGS | ...`
+    pub(crate) fn pipe_from_command(command: &str, args: &[&str]) -> Result<ChildStdout> {
+        Self::new_command_with_args(command, args)
             .stdout(Stdio::piped())
             .spawn()
-            .with_context(|| "Failed to spawn sed")?
+            .with_context(|| format!("Failed to execute {command} command"))?
             .stdout
-            .with_context(|| "Failed to open sed stdout from sed pipe")
-    }
-
-    /// Call `git` with arguments from `args`
-    ///
-    /// `git ARGS`
-    pub(crate) fn pipe_from_git(args: &[&str]) -> Result<ChildStdout> {
-        Self::new_command_with_args("git", args)
-            .stdout(Stdio::piped())
-            .spawn()
-            .with_context(|| "Failed to execute git command")?
-            .stdout
-            .with_context(|| "Failed to spawn git")
+            .with_context(|| format!("Failed to spawn {command}"))
     }
 }

@@ -1,4 +1,10 @@
-use clap::{arg, command, Args, Parser, Subcommand};
+use self::subcommands::Subcommands;
+use crate::git::{Git, GitResult, PRINT_COMMANDS};
+use clap::{arg, command, error::ErrorKind, Args, CommandFactory, Parser};
+use log::{info, LevelFilter};
+use std::sync::atomic::Ordering;
+
+mod subcommands;
 
 #[derive(Parser, Debug)]
 #[command(about, version, arg_required_else_help = true)]
@@ -41,132 +47,35 @@ pub(crate) struct GitConfigOpts {
     pub(crate) show_origin: bool,
 }
 
-#[derive(Subcommand, Debug)]
-pub(crate) enum Subcommands {
-    /// Wrapper around git-add
-    #[command(allow_hyphen_values = true)]
-    A {
-        /// Command arguments
-        args: Vec<String>,
-    },
-    /// Add updated and untracked files and then commit
-    #[command(allow_hyphen_values = true)]
-    Aac {
-        /// Command arguments
-        args: Vec<String>,
-    },
-    /// List configured aliases
-    Alias {
-        /// text to filter on
-        filter: Option<String>,
+impl Cli {
+    pub(crate) fn run_subcommand(&self) -> GitResult {
+        PRINT_COMMANDS.store(self.options.print_command, Ordering::Relaxed);
 
-        #[clap(flatten)]
-        options: GitConfigOpts,
-    },
-    /// Add updated files and then commit
-    #[clap(alias = "ac")]
-    #[command(allow_hyphen_values = true)]
-    Auc {
-        /// Command arguments
-        args: Vec<String>,
-    },
-    /// Reset author to current value of `user.author` and `user.email` for the last n commits
-    Author {
-        /// Number of commits to reset (else defaults to 1)
-        num: Option<u8>,
-    },
-    /// List config settings (excluding aliases)
-    Conf {
-        /// The text to filter on
-        filter: Option<String>,
+        if let Some(args) = &self.fallback {
+            Git::pass_through(args)
+        } else if let Some(subcommand) = &self.subcommand {
+            subcommand.run()
+        } else {
+            Cli::command()
+                .error(
+                    ErrorKind::MissingRequiredArgument,
+                    "Either FALLBACK or COMMAND must be provided!",
+                )
+                .exit()
+        }
+    }
 
-        #[clap(flatten)]
-        options: GitConfigOpts,
-    },
-    /// Call a git hook
-    Hook {
-        #[command(subcommand)]
-        hook: HookSubcommands,
-    },
-    /// List the files that changed in the last n commits
-    #[clap(alias = "shf")]
-    Files {
-        /// The number of commits to list files for (else defaults to 1)
-        num: Option<u8>,
-    },
-    /// Wrapper around `git-log`, formatted to 1 line per commit
-    #[command(allow_hyphen_values = true)]
-    L {
-        /// The number of commits to list (else defaults to 25)
-        num: Option<u8>,
+    pub(crate) fn initialize_logger(&self) {
+        let log_level = match self.options.verbose {
+            0 => LevelFilter::Error,
+            1 => LevelFilter::Warn,
+            2 => LevelFilter::Info,
+            3 => LevelFilter::Debug,
+            4..=std::u8::MAX => LevelFilter::Trace,
+        };
 
-        /// Command arguments
-        args: Vec<String>,
-    },
-    /// Wrapper around `git-log --compact-summary` (commit message and list of changed files)
-    #[clap(alias = "la")]
-    #[command(allow_hyphen_values = true)]
-    Last {
-        /// The number of commits to list (else defaults to 10)
-        num: Option<u8>,
+        env_logger::Builder::new().filter_level(log_level).init();
 
-        /// Command arguments
-        args: Vec<String>,
-    },
-    /// Wrapper around `git-restore`
-    #[clap(alias = "rest")]
-    #[command(allow_hyphen_values = true)]
-    Restore {
-        /// Which files to operate on
-        #[command(subcommand)]
-        which: Option<WhichFiles>,
-
-        /// Command arguments
-        args: Vec<String>,
-    },
-    /// Wrapper around `git-show`
-    #[command(allow_hyphen_values = true)]
-    #[clap(alias = "sh")]
-    Show {
-        /// number of commits to show (else defaults to 1)
-        num: Option<u8>,
-
-        /// Command arguments
-        args: Vec<String>,
-    },
-    /// Reset the last commit or the last n commits and keep the undone changes in working directory
-    Undo {
-        /// The number of commits to undo (else defaults to 1)
-        num: Option<u8>,
-    },
-    /// Move staged files back to staging area; wrapper around `git-restore --staged`
-    #[clap(alias = "u")]
-    #[command(allow_hyphen_values = true)]
-    Unstage {
-        /// which files to operate on
-        #[command(subcommand)]
-        which: Option<WhichFiles>,
-
-        /// Command arguments
-        args: Vec<String>,
-    },
-    /// Update local branch from origin without checking it out
-    #[clap(alias = "unwind")]
-    #[command(allow_hyphen_values = true)]
-    Update {
-        /// Command arguments
-        args: String,
-    },
-}
-
-#[derive(Subcommand, Debug, Clone, Copy)]
-pub(crate) enum HookSubcommands {
-    /// `pre-commit` hook
-    PreCommit {},
-}
-
-/// Specify which files to operate a command against
-#[derive(Subcommand, Debug, Clone, Copy)]
-pub(crate) enum WhichFiles {
-    All,
+        info!("logging initialized at level {}", log_level);
+    }
 }

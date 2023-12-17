@@ -3,10 +3,10 @@ use core::fmt;
 /// Environment variables used by the **git-util** application
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) enum GitUtilEnvVars {
-    /// Semicolon-separated list of strings that are not allowed in the commit diffs
+    /// Pipe-separated list of strings that are not allowed in the commit diffs
     DisallowedStrings,
     /// The email that is used for commits
-    ValidUserEmail,
+    UserEmail,
 }
 
 /// Environment variables used by **Git**
@@ -48,7 +48,7 @@ impl fmt::Display for GitUtilEnvVars {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             GitUtilEnvVars::DisallowedStrings => write!(f,"GIT_UTIL_DISALLOWED_STRINGS"),
-            GitUtilEnvVars::ValidUserEmail => write!(f, "GIT_UTIL_USER_EMAIL"),
+            GitUtilEnvVars::UserEmail => write!(f, "GIT_UTIL_USER_EMAIL"),
         }
     }
 }

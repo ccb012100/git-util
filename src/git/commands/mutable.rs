@@ -6,67 +6,55 @@ use log::{debug, trace};
 pub struct MutableCommands();
 
 impl MutableCommands {
+    /// `git add ARGS`
     pub fn add(args: &[String]) -> GitResult {
         trace!("add() called with: {:#?}", args);
         if args.is_empty() {
-            Git::verify_staging_area_is_empty()?;
-
-            // equivalent to `git add --update && git status --short`
-            let result: GitCommandResult = GitCommand {
-                subcommand: "add",
-                default_args: &["--update"],
-                user_args: &[],
-            }
-            .execute_git_command()?;
-
-            match result {
-                GitCommandResult::Success => GitCommand {
-                    subcommand: "status", // force color for `status` subcommand
-                    default_args: &["--short"],
-                    user_args: &[],
-                }
-                .execute_git_command(),
-                GitCommandResult::Error => Err(anyhow!("git add --update returned an error")),
-            }
-        } else {
-            // pass through to git-add
-            GitCommand {
-                subcommand: "add",
-                default_args: &[],
-                user_args: args,
-            }
-            .execute_git_command()
+            return Err(anyhow!("Must supply arguments"));
         }
+
+        GitCommand {
+            subcommand: "add",
+            default_args: &[],
+            user_args: args,
+        }
+        .execute_git_command()
     }
 
-    pub fn add_all_and_commit(args: &[String]) -> GitResult {
-        trace!("aac() called with: {:#?}", args);
-        Git::verify_staging_area_is_empty()?;
+    /// `git add --all`
+    ///
+    /// Fails if there are already staged files
+    pub fn add_all() -> GitResult {
+        trace!("add_all called");
+
+        if let GitCommandResult::Error = Git::verify_staging_area_is_empty()? {
+            return Err(anyhow!(
+                "Can not add updated and untracked files to staging area; there are already staged files!"
+            ));
+        }
 
         // equivalent to `git add --all && git commit`
-        let result: GitCommandResult = GitCommand {
+        GitCommand {
             subcommand: "add",
             default_args: &["--all"],
             user_args: &[],
         }
-        .execute_git_command()?;
-
-        match result {
-            GitCommandResult::Success => GitCommand {
-                subcommand: "commit", // force color for `status` subcommand
-                default_args: &[],
-                user_args: args,
-            }
-            .execute_git_command(),
-            GitCommandResult::Error => Err(anyhow!("git add --all returned an error")),
-        }
+        .execute_git_command()
     }
 
-    pub fn add_updated_files_and_commit(args: &[String]) -> GitResult {
-        trace!("auc() called with: {:#?}", args);
-        Git::verify_staging_area_is_empty()?;
+    /// `git add --update && git status --short`
+    ///
+    /// Fails if there are already staged files.
+    pub fn add_updated() -> GitResult {
+        trace!("add_updated() called");
 
-        // equivalent to `git add --all && git commit`
+        if let GitCommandResult::Error = Git::verify_staging_area_is_empty()? {
+            return Err(anyhow!(
+                "Can not add updated files to staging area; there are already staged files!"
+            ));
+        }
+
+        // equivalent to `git add --update && git status --short`
         let result: GitCommandResult = GitCommand {
             subcommand: "add",
             default_args: &["--update"],
@@ -76,7 +64,41 @@ impl MutableCommands {
 
         match result {
             GitCommandResult::Success => GitCommand {
-                subcommand: "commit", // force color for `status` subcommand
+                subcommand: "status",
+                default_args: &["--short"],
+                user_args: &[],
+            }
+            .execute_git_command(),
+            GitCommandResult::Error => Err(anyhow!("git add --update returned an error")),
+        }
+    }
+
+    /// `git add --all && git commit`
+    ///
+    /// Fails if there are already staged files
+    pub fn add_all_and_commit(args: &[String]) -> GitResult {
+        trace!("aac() called with: {:#?}", args);
+
+        match Self::add_all()? {
+            GitCommandResult::Success => GitCommand {
+                subcommand: "commit",
+                default_args: &[],
+                user_args: args,
+            }
+            .execute_git_command(),
+            GitCommandResult::Error => Err(anyhow!("git add --all returned an error")),
+        }
+    }
+
+    /// `git add --update && git commit`
+    ///
+    /// Fails if there are already staged files
+    pub fn add_updated_files_and_commit(args: &[String]) -> GitResult {
+        trace!("auc() called with: {:#?}", args);
+
+        match Self::add_updated()? {
+            GitCommandResult::Success => GitCommand {
+                subcommand: "commit",
                 default_args: &[],
                 user_args: args,
             }
@@ -85,6 +107,7 @@ impl MutableCommands {
         }
     }
 
+    /// Changes the author on the last n commits to the current git user
     pub fn update_commit_author(num: Option<u8>) -> GitResult {
         trace!("author() called with: {:#?}", num);
         GitCommand {
@@ -99,6 +122,7 @@ impl MutableCommands {
         .execute_git_command()
     }
 
+    /// Wrapper around `git-restore`
     pub fn restore(args: &[String]) -> GitResult {
         trace!("restore() called with: {:#?}", args);
 
@@ -110,6 +134,7 @@ impl MutableCommands {
         .execute_git_command()
     }
 
+    /// `git restore :/`
     pub fn restore_all() -> GitResult {
         trace!("restore_all() called");
 
@@ -121,17 +146,19 @@ impl MutableCommands {
         .execute_git_command()
     }
 
+    /// `git reset --mixed HEAD~NUM`
     pub fn undo_commits(num: Option<u8>) -> GitResult {
         trace!("undo() called with: {:#?}", num);
 
         GitCommand {
             subcommand: "reset",
-            default_args: &[&format!("HEAD~{}", num.unwrap_or(1))],
+            default_args: &["--mixed", &format!("HEAD~{}", num.unwrap_or(1))],
             user_args: &[],
         }
         .execute_git_command()
     }
 
+    /// `git restore --staged ARGS`
     pub fn unstage(args: &[String]) -> GitResult {
         trace!("unstage() called with: {:#?}", args);
         debug_assert!(!args.is_empty());
@@ -144,6 +171,7 @@ impl MutableCommands {
         .execute_git_command()
     }
 
+    /// `git restore --staged :/`
     pub fn unstage_all() -> GitResult {
         debug!("update_all() called");
 
@@ -155,6 +183,7 @@ impl MutableCommands {
         .execute_git_command()
     }
 
+    // `git fetch --verbose origin:BRANCH`
     pub fn update_branch_from_remote(branch: &String) -> GitResult {
         debug!("update() called with: {:#?}", branch);
         debug_assert!(!branch.is_empty());

@@ -1,4 +1,4 @@
-use crate::git::PRINT_COMMAND;
+use crate::git::PRINT_COMMANDS;
 use nu_ansi_term::{AnsiString, AnsiStrings, Color};
 use std::{
     io::{stderr, IsTerminal},
@@ -11,7 +11,7 @@ pub(crate) struct Print();
 impl Print {
     /// Print `command` to `stderr` if `PRINT_COMMAND` has been set
     pub(crate) fn print_command(command: &Command) {
-        if PRINT_COMMAND.load(std::sync::atomic::Ordering::SeqCst) {
+        if PRINT_COMMANDS.load(std::sync::atomic::Ordering::SeqCst) {
             Print::stderr_purple(&format!("command: {:?}", command));
         }
     }
