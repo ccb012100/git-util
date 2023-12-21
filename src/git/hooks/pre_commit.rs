@@ -57,7 +57,7 @@ impl PreCommitHook {
 
                 // get diff for impending commit
                 let diff_changes =
-                    Commands::pipe_from_command("git", &["diff-index", "-pM", "--cached HEAD"])?;
+                    Commands::pipe_from_command("git", &["diff-index", "-p", "-M", "--cached", "HEAD"])?;
 
                 // filter down to code additions only
                 let diff_added = Ripgrep::double_ended_pipe(diff_changes, r"^+", None)?;
