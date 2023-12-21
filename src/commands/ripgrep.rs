@@ -60,11 +60,11 @@ fn parse_options<'a>(options: &'a [RipgrepOptions], pattern: &'a str) -> Vec<&'a
                 // TODO: get this borrow issue worked out
                 //context = &format!("-C{num}"),
                 match num {
-                    1 => "--context 1",
-                    2 => "--context 2",
-                    3 => "--context 3",
-                    4 => "--context 4",
-                    5 => "--context 5",
+                    1 => "--context=1",
+                    2 => "--context=2",
+                    3 => "--context=3",
+                    4 => "--context=4",
+                    5 => "--context=5",
                     _ => todo!(),
                 }
             }
