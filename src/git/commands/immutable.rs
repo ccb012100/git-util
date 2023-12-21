@@ -46,7 +46,7 @@ impl ImmutableCommands {
         let aliases = Commands::pipe_from_command("git", &config_args)?;
 
         // strip out the initial "alias." from the config name
-        let aliases = Commands::double_ended_pipe("git", aliases, &[r"s/^alias\.//"])?;
+        let aliases = Commands::double_ended_pipe("sed", aliases, &[r"s/^alias\.//"])?;
 
         let filtered_aliases: ChildStdout = match filter {
             Some(pattern) => {
