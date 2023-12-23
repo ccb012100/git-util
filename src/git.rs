@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use log::{debug, trace};
 use std::{
     io::{stdout, IsTerminal},
+    process::Command,
     sync::atomic::AtomicBool,
 };
 
@@ -84,9 +85,20 @@ impl Git {
 }
 
 impl GitCommand<'_> {
-    /// Execute `git` command with the supplied arguments
+    /// Construct and then execute a `std::process:Command` that calls `git`
     pub(crate) fn execute_git_command(&self) -> GitResult {
         trace!("execute_git_command() called with: {:#?}", self);
+
+        if self.construct_git_command().status()?.success() {
+            Ok(GitCommandResult::Success)
+        } else {
+            Ok(GitCommandResult::Error)
+        }
+    }
+
+    /// Construct a `std::process:Command` that calls `git`
+    pub(crate) fn construct_git_command(&self) -> Command {
+        trace!("construct_git_command() called with: {:#?}", self);
 
         let mut command_args: Vec<&str> = match stdout().is_terminal() {
             /* Force color on subcommands that support it.
@@ -107,13 +119,6 @@ impl GitCommand<'_> {
 
         debug!("parsed command args: {:#?}", command_args);
 
-        if Commands::new_command_with_args("git", &command_args)
-            .status()?
-            .success()
-        {
-            Ok(GitCommandResult::Success)
-        } else {
-            Ok(GitCommandResult::Error)
-        }
+        Commands::new_command_with_args("git", &command_args)
     }
 }
