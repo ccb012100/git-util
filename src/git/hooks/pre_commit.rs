@@ -1,20 +1,17 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use log::{debug, info};
 use std::{
     env::{self, VarError},
     fmt::Display,
-    process::ExitStatus,
+    io::{self, Write},
 };
 
 use crate::{
-    commands::{
-        ripgrep::{Ripgrep, RipgrepOptions},
-        Commands,
-    },
     git::{
         env_vars::{GitEnvVars, GitUtilEnvVars},
-        GitCommandResult, GitResult,
+        GitCommand, GitCommandResult, GitResult,
     },
+    print::Print,
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -56,23 +53,45 @@ impl PreCommitHook {
                 );
 
                 // get diff for impending commit
-                let diff_changes =
-                    Commands::pipe_from_command("git", &["diff-index", "-p", "-M", "--cached", "HEAD"])?;
-
-                // filter down to code additions only
-                let diff_added = Ripgrep::double_ended_pipe(diff_changes, r"^+", None)?;
-
-                // filter for additions that match on any of the disallowed strings
-                let blocked: ExitStatus = Ripgrep::pipe_to_ripgrep(
-                    diff_added,
-                    &disallowed_strings,
-                    Some(&[RipgrepOptions::IgnoreCase, RipgrepOptions::Context(2)]),
-                )?;
-
-                // if blocked succeeds, that means a match was found for the disallowed strings
-                if blocked.success() {
-                    return Err(anyhow!("Disallowed string found in commit changes!"));
+                let diff_changes_output: std::process::Output = GitCommand {
+                    subcommand: "diff-index",
+                    default_args: &["-p", "-M", "--cached", "HEAD"],
+                    user_args: &[],
                 }
+                .construct_git_command()
+                .output()
+                .with_context(|| "Failed to execute 'git diff-index' command")?;
+
+                match diff_changes_output.status.success() {
+                    true => {
+                        let stdout = String::from_utf8(diff_changes_output.stdout)?;
+                        let stdout = stdout.lines();
+
+                        let blocked_strings: Vec<String> = disallowed_strings
+                            .split('|')
+                            .map(|ds| ds.to_lowercase())
+                            .collect();
+
+                        // filter down to code additions only
+                        for line in stdout.filter(|line| line.starts_with('+')) {
+                            for blocked in &blocked_strings {
+                                if line.to_lowercase().contains(blocked) {
+                                    Print::stderr_purple(&format!(
+                                        "Disallowed addition:\n\n{line}"
+                                    ));
+
+                                    return Err(anyhow!(
+                                        "Disallowed string found in commit changes!"
+                                    ));
+                                }
+                            }
+                        }
+                        debug!("No disallowed changes found");
+                    }
+                    false => io::stdout().write_all(&diff_changes_output.stdout)?,
+                }
+
+                io::stderr().write_all(&diff_changes_output.stderr)?;
             }
             Err(err) => {
                 if err.to_string() == "environment variable not found" {
