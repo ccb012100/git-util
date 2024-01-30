@@ -3,7 +3,7 @@ use core::fmt;
 /// Environment variables used by the **git-util** application
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) enum GitUtilEnvVars {
-    /// Pipe-delimited list of strings that are not allowed in the commit diffs
+    /// Regex string to match against for diff changes that are not allowed in a commit
     DisallowedStrings,
     /// The email that is used for commits
     UserEmail,

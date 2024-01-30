@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Context};
 use log::{debug, info};
+use regex::Regex;
 use std::{
     env::{self, VarError},
     fmt::Display,
@@ -67,23 +68,18 @@ impl PreCommitHook {
                         let stdout = String::from_utf8(diff_changes_output.stdout)?;
                         let stdout = stdout.lines();
 
-                        let blocked_strings: Vec<String> = disallowed_strings
-                            .split('|')
-                            .map(|ds| ds.to_lowercase())
-                            .collect();
+                        let re =
+                            Regex::new(format!("(?i){}", disallowed_strings.as_str()).as_str())
+                                .unwrap();
+
+                        debug!("{:#?}", re);
 
                         // filter down to code additions only
                         for line in stdout.filter(|line| line.starts_with('+')) {
-                            for blocked in &blocked_strings {
-                                if line.to_lowercase().contains(blocked) {
-                                    Print::stderr_purple(&format!(
-                                        "Disallowed addition:\n\n{line}"
-                                    ));
+                            if re.is_match(line) {
+                                Print::stderr_purple(&format!("Disallowed addition:\n\n{line}"));
 
-                                    return Err(anyhow!(
-                                        "Disallowed string found in commit changes!"
-                                    ));
-                                }
+                                return Err(anyhow!("Disallowed string found in commit changes!"));
                             }
                         }
                         debug!("No disallowed changes found");
