@@ -6,8 +6,10 @@ use super::Commands;
 pub(crate) struct Ripgrep {}
 
 pub(crate) enum RipgrepOptions {
+    #[allow(dead_code)]
     Context(u8),
     FixedStrings,
+    #[allow(dead_code)]
     IgnoreCase,
     InvertMatch,
 }
@@ -31,6 +33,7 @@ impl Ripgrep {
     /// Pipe `input` to ripgrep
     ///
     /// `INPUT | rg OPTIONS PATTERN`
+    #[allow(dead_code)]
     pub(crate) fn pipe_to_ripgrep(
         input: ChildStdout,
         pattern: &str,
