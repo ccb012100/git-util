@@ -108,7 +108,7 @@ impl MutableCommands {
     }
 
     /// Changes the author on the last n commits to the current git user
-    pub fn update_commit_author(num: Option<u8>) -> GitResult {
+    pub fn update_commit_author(num: Option<u16>) -> GitResult {
         trace!("author() called with: {:#?}", num);
         GitCommand {
             subcommand: "rebase",
@@ -147,7 +147,7 @@ impl MutableCommands {
     }
 
     /// `git reset --mixed HEAD~NUM`
-    pub fn undo_commits(num: Option<u8>) -> GitResult {
+    pub fn undo_commits(num: Option<u16>) -> GitResult {
         trace!("undo() called with: {:#?}", num);
 
         GitCommand {

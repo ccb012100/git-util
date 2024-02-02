@@ -16,7 +16,7 @@ pub struct ImmutableCommands();
 
 impl ImmutableCommands {
     /// `git log --compact-summary --max-count=NUM ARGS`
-    pub fn compact_summary_log(num: Option<u8>, args: &[String]) -> GitResult {
+    pub fn compact_summary_log(num: Option<u16>, args: &[String]) -> GitResult {
         trace!("last() called with: {:#?}, {:#?}", num, args);
 
         GitCommand {
@@ -107,7 +107,7 @@ impl ImmutableCommands {
     }
 
     /// `git log --pretty='%C(yellow)%h %C(magenta)%as %C(blue)%aL %C(cyan)%s%C(reset)' --max-count=NUM ARGS`
-    pub fn one_line_log(num: Option<u8>, args: &[String]) -> GitResult {
+    pub fn one_line_log(num: Option<u16>, args: &[String]) -> GitResult {
         trace!("log_oneline() called with: {:#?}", num);
 
         GitCommand {
@@ -122,7 +122,7 @@ impl ImmutableCommands {
     }
 
     /// `git show --expand-tabs=4 --max-count=NUM ARGS`
-    pub fn show(num: Option<u8>, args: &[String]) -> GitResult {
+    pub fn show(num: Option<u16>, args: &[String]) -> GitResult {
         trace!("show() called with: {:#?}", num);
 
         GitCommand {
@@ -137,7 +137,7 @@ impl ImmutableCommands {
     }
 
     /// `git show --pretty='' --name-only --max-count=NUM`
-    pub fn show_files(num: Option<u8>) -> GitResult {
+    pub fn show_files(num: Option<u16>) -> GitResult {
         trace!("show_files() called with: {:#?}", num);
 
         GitCommand {
