@@ -62,7 +62,7 @@ pub(crate) enum Subcommands {
     /// Reset author to current value of `user.author` and `user.email` for the last n commits
     Author {
         /// Number of commits to reset (else defaults to 1)
-        num: Option<u8>,
+        num: Option<u16>,
     },
     /// List config settings (excluding aliases)
     Conf {
@@ -82,13 +82,13 @@ pub(crate) enum Subcommands {
     #[clap(alias = "shf")]
     Files {
         /// The number of commits to list files for (else defaults to 1)
-        num: Option<u8>,
+        num: Option<u16>,
     },
     /// Wrapper around `git-log`, formatted to 1 line per commit
     #[command(allow_hyphen_values = true)]
     L {
         /// The number of commits to list (else defaults to 25)
-        num: Option<u8>,
+        num: Option<u16>,
 
         /// Command arguments
         args: Vec<String>,
@@ -98,7 +98,7 @@ pub(crate) enum Subcommands {
     #[command(allow_hyphen_values = true)]
     Last {
         /// The number of commits to list (else defaults to 10)
-        num: Option<u8>,
+        num: Option<u16>,
 
         /// Command arguments
         args: Vec<String>,
@@ -119,7 +119,7 @@ pub(crate) enum Subcommands {
     #[clap(alias = "sh")]
     Show {
         /// The number of commits to show (else defaults to 1)
-        num: Option<u8>,
+        num: Option<u16>,
 
         /// Command arguments
         args: Vec<String>,
@@ -127,7 +127,7 @@ pub(crate) enum Subcommands {
     /// Reset the last n commits and keep the undone changes in working directory.
     Undo {
         /// The number of commits to undo (else defaults to 1)
-        num: Option<u8>,
+        num: Option<u16>,
     },
     /// Move staged files back to staging area; wrapper around `git-restore --staged`
     #[clap(alias = "u")]
