@@ -19,16 +19,29 @@ impl Commands {
     ///
     /// `column --table --separator 'SEPARATOR'`
     pub(crate) fn pipe_to_column(input: ChildStdout, separator: char) -> Result<Output> {
-        Self::new_command_with_args(
-            "column",
-            &["--table", "--separator", separator.to_string().as_str()],
-        )
-        .stdin(Stdio::from(input))
-        .stdout(Stdio::piped())
-        .spawn()
-        .with_context(|| "Failed to pipe to column")?
-        .wait_with_output()
-        .with_context(|| "Failed to get column output")
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
+        {
+            Self::new_command_with_args(
+                "column",
+                &["--table", "--separator", separator.to_string().as_str()],
+            )
+            .stdin(Stdio::from(input))
+            .stdout(Stdio::piped())
+            .spawn()
+            .with_context(|| "Failed to pipe to column")?
+            .wait_with_output()
+            .with_context(|| "Failed to get column output")
+        }
+        #[cfg(target_os = "macos")]
+        {
+            Self::new_command_with_args("column", &["-t", "-s", separator.to_string().as_str()])
+                .stdin(Stdio::from(input))
+                .stdout(Stdio::piped())
+                .spawn()
+                .with_context(|| "Failed to pipe to column")?
+                .wait_with_output()
+                .with_context(|| "Failed to get column output")
+        }
     }
 
     /// Pipe `input` to `command` with `arg` and pipe `command` to stdin

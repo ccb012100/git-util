@@ -58,9 +58,9 @@ impl ImmutableCommands {
 
         // replace the first space (which separates the alias name and value) with a semicolon
         let delimited_aliases =
-            Commands::double_ended_pipe("sed", filtered_aliases, &[r"s/ /\;/"])?;
+            Commands::double_ended_pipe("sed", filtered_aliases, &[r"s/ /\t/"])?;
 
-        let aliases_table: Output = Commands::pipe_to_column(delimited_aliases, ';')?;
+        let aliases_table: Output = Commands::pipe_to_column(delimited_aliases, '\t')?;
 
         io::stdout()
             .write_all(&aliases_table.stdout)
