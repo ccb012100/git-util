@@ -50,21 +50,21 @@ pub(crate) enum Subcommands {
         #[clap(flatten)]
         options: GitConfigOpts,
     },
-    /// Add updated files and then commit.
+    /// Commit updated files.
     ///
-    /// Fails if the staging area is not empty before attempting to add files.
+    /// Fails if the staging area is not empty when subcommand is run.
     #[clap(alias = "ac")]
     #[command(allow_hyphen_values = true)]
     Auc {
         /// Command arguments
         args: Vec<String>,
     },
-    /// Reset author to current value of `user.author` and `user.email` for the last n commits
+    /// Reset author to current value of `user.author` and `user.email` for the last n commits.
     Author {
         /// Number of commits to reset (else defaults to 1)
         num: Option<u16>,
     },
-    /// List config settings (excluding aliases)
+    /// List config settings (excluding aliases).
     Conf {
         /// The text to filter on
         filter: Option<String>,
@@ -72,19 +72,19 @@ pub(crate) enum Subcommands {
         #[clap(flatten)]
         options: GitConfigOpts,
     },
-    /// Call a git hook
+    /// Call a git hook.
     Hook {
         // The hook to call
         #[command(subcommand)]
         hook: HookSubcommands,
     },
-    /// List the files that changed in the last n commits
+    /// List the files that changed in the last n commits.
     #[clap(alias = "shf")]
     Files {
         /// The number of commits to list files for (else defaults to 1)
         num: Option<u16>,
     },
-    /// Wrapper around `git-log`, formatted to 1 line per commit
+    /// Wrapper around `git-log`, formatted to 1 line per commit.
     #[command(allow_hyphen_values = true)]
     L {
         /// The number of commits to list (else defaults to 25)
@@ -93,7 +93,7 @@ pub(crate) enum Subcommands {
         /// Command arguments
         args: Vec<String>,
     },
-    /// List commit message and of changed files for the last n commits; wrapper around `git-log --compact-summary`
+    /// List commit message and of changed files for the last n commits; wrapper around `git-log --compact-summary`.
     #[clap(alias = "la")]
     #[command(allow_hyphen_values = true)]
     Last {
@@ -103,7 +103,7 @@ pub(crate) enum Subcommands {
         /// Command arguments
         args: Vec<String>,
     },
-    /// Wrapper around `git-restore`
+    /// Wrapper around `git-restore`.
     #[clap(alias = "rest")]
     #[command(allow_hyphen_values = true)]
     Restore {
@@ -114,7 +114,7 @@ pub(crate) enum Subcommands {
         /// Command arguments
         args: Vec<String>,
     },
-    /// Wrapper around `git-show`
+    /// Wrapper around `git-show`.
     #[command(allow_hyphen_values = true)]
     #[clap(alias = "sh")]
     Show {
@@ -129,7 +129,7 @@ pub(crate) enum Subcommands {
         /// The number of commits to undo (else defaults to 1)
         num: Option<u16>,
     },
-    /// Move staged files back to staging area; wrapper around `git-restore --staged`
+    /// Move staged files back to staging area; wrapper around `git-restore --staged`.
     #[clap(alias = "u")]
     #[command(allow_hyphen_values = true)]
     Unstage {
@@ -140,7 +140,7 @@ pub(crate) enum Subcommands {
         /// Command arguments
         args: Vec<String>,
     },
-    /// Update the specified local branch from origin without checking it out
+    /// Update the specified local branch from origin without checking it out.
     #[clap(alias = "unwind")]
     #[command(allow_hyphen_values = true)]
     Update {

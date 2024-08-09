@@ -19,12 +19,12 @@ use crate::{
 pub struct PreCommitHook {}
 
 impl PreCommitHook {
-    /// Run pre-commit hook
+    /// Run the pre-commit hook.
     ///
-    /// 1. Commit email is checked against the env value `$GIT_UTIL_USER_EMAIL`
-    ///     - fails if the commit email does not match
-    /// 2. If env value `$GIT_UTIL_DISALLOWED_STRINGS` is set, the diff changes are checked for matches to the disallowed strings
-    ///     - fails if any added changes in the diff contain a match for any of the disallowed strings
+    /// 1. Commit email is checked against the env value `$GIT_UTIL_USER_EMAIL`.
+    ///     - Fails if the commit email does not match.
+    /// 2. If env value `$GIT_UTIL_DISALLOWED_STRINGS` is set, the diff changes are checked for matches to the disallowed strings.
+    ///     - Fails if any added changes in the diff contain a match for any of the disallowed strings.
     pub fn run() -> GitResult {
         info!("Running pre-commit hook");
 
@@ -56,7 +56,7 @@ impl PreCommitHook {
                 // get diff for impending commit
                 let diff_changes_output: std::process::Output = GitCommand {
                     subcommand: "diff-index",
-                    default_args: &["-p", "-M", "--cached", "HEAD"],
+                    default_args: &["--p", "--find-renames", "--cached", "HEAD"],
                     user_args: &[],
                 }
                 .construct_git_command()
@@ -106,7 +106,7 @@ impl PreCommitHook {
     }
 }
 
-/// Add detail to `&VarError` returned from `std::env::var` call
+/// Add detail to `&VarError` returned from `std::env::var` call.
 fn get_env_var_error<T: Display>(env_var: &T, err: &VarError) -> GitResult {
     Err(anyhow!("failed to get env variable {}: {}", env_var, err))
 }

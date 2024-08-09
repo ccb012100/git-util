@@ -3,13 +3,13 @@ use core::fmt;
 /// Environment variables used by the **git-util** application
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) enum GitUtilEnvVars {
-    /// Regex string to match against for diff changes that are not allowed in a commit
+    /// The Regex string used to match against diff changes to find changes that are not allowed in a commit.
     DisallowedStrings,
-    /// The email that is used for commits
+    /// The email address that is used for commits.
     UserEmail,
 }
 
-/// Environment variables used by **Git**
+/// Environment variables used by **Git**.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) enum GitEnvVars {
     #[allow(dead_code)]
@@ -47,7 +47,7 @@ impl From<GitEnvVars> for String {
 impl fmt::Display for GitUtilEnvVars {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GitUtilEnvVars::DisallowedStrings => write!(f,"GIT_UTIL_DISALLOWED_STRINGS"),
+            GitUtilEnvVars::DisallowedStrings => write!(f, "GIT_UTIL_DISALLOWED_STRINGS"),
             GitUtilEnvVars::UserEmail => write!(f, "GIT_UTIL_USER_EMAIL"),
         }
     }

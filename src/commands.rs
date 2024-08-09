@@ -7,7 +7,7 @@ pub(crate) mod ripgrep;
 pub(crate) struct Commands();
 
 impl Commands {
-    /// This is mainly a convenience function so that we can print the command
+    /// This is mainly a convenience function so that we can print the command.
     pub(crate) fn new_command_with_args(command: &str, args: &[&str]) -> Command {
         let mut cmd = Command::new(command);
         cmd.args(args);
@@ -15,7 +15,7 @@ impl Commands {
         cmd
     }
 
-    /// format `input` as a table, using `separator` as the separator
+    /// Format `input` as a table, using `separator` as the separator.
     ///
     /// `column --table --separator 'SEPARATOR'`
     pub(crate) fn pipe_to_column(input: ChildStdout, separator: char) -> Result<Output> {
@@ -44,7 +44,7 @@ impl Commands {
         }
     }
 
-    /// Pipe `input` to `command` with `arg` and pipe `command` to stdin
+    /// Pipe `input` to `command` with `arg` and pipe `command` to stdin.
     ///
     /// `INPUT | COMMAND ARG | ...`
     pub(crate) fn double_ended_pipe(
@@ -61,7 +61,7 @@ impl Commands {
             .with_context(|| format!("Failed to open stdout from {command} pipe"))
     }
 
-    /// Call `command` with arguments from `args` and pipe output to stdin
+    /// Call `command` with arguments from `args` and pipe output to stdin.
     ///
     /// `COMMAND ARGS | ...`
     pub(crate) fn pipe_from_command(command: &str, args: &[&str]) -> Result<ChildStdout> {

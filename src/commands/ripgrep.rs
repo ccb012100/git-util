@@ -15,7 +15,7 @@ pub(crate) enum RipgrepOptions {
 }
 
 impl Ripgrep {
-    /// Pipe from `input` to ripgrep to stdin
+    /// Pipe from `input` to ripgrep to stdin.
     ///
     /// `INPUT | rg | ...`
     pub(crate) fn double_ended_pipe(
@@ -30,7 +30,7 @@ impl Ripgrep {
         }
     }
 
-    /// Pipe `input` to ripgrep
+    /// Pipe `input` to ripgrep.
     ///
     /// `INPUT | rg OPTIONS PATTERN`
     #[allow(dead_code)]
@@ -53,7 +53,7 @@ impl Ripgrep {
     }
 }
 
-/// Parse `options` in a `Vec<&str>` that can be used in a `std::process::Command`
+/// Parse `options` in a `Vec<&str>` that can be used in a `std::process::Command`.
 fn parse_options<'a>(options: &'a [RipgrepOptions], pattern: &'a str) -> Vec<&'a str> {
     let mut args: Vec<&str> = Vec::new();
 

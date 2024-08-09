@@ -15,7 +15,7 @@ pub(crate) mod hooks;
 pub(crate) type GitResult = Result<GitCommandResult>;
 pub(crate) struct Git();
 
-/// Flag to indicate whether or not to print the commands executed
+/// Flag used to indicate whether or not to print the commands executed.
 pub(crate) static PRINT_COMMANDS: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -31,14 +31,14 @@ pub(super) struct GitCommand<'a> {
     pub(crate) user_args: &'a [String],
 }
 
-/// Outcome of running a Git command; used to set exit code at end
+/// The outcome of running a Git command; used to set exit code at end.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) enum GitCommandResult {
     Success,
     Error,
 }
 
-/// Options to the `git-config` command
+/// The options to the `git-config` command.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) struct GitConfigOpts {
     pub(crate) show_origin: bool,
@@ -68,7 +68,7 @@ impl Git {
         command.execute_git_command()
     }
 
-    /// Return success if
+    /// Return `Success` if nothing is printed to stdout when `git diff --staged --name-only` is run.
     pub(crate) fn verify_staging_area_is_empty() -> GitResult {
         trace!("check_for_staged_files() called");
         let output: std::process::Output =
@@ -85,7 +85,7 @@ impl Git {
 }
 
 impl GitCommand<'_> {
-    /// Construct and then execute a `std::process:Command` that calls `git`
+    /// Construct and then execute a `std::process:Command` that calls `git`.
     pub(crate) fn execute_git_command(&self) -> GitResult {
         trace!("execute_git_command() called with: {:#?}", self);
 
@@ -96,7 +96,7 @@ impl GitCommand<'_> {
         }
     }
 
-    /// Construct a `std::process:Command` that calls `git`
+    /// Construct a `std::process:Command` that calls `git`.
     pub(crate) fn construct_git_command(&self) -> Command {
         trace!("construct_git_command() called with: {:#?}", self);
 

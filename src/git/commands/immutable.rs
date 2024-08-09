@@ -30,7 +30,7 @@ impl ImmutableCommands {
         .execute_git_command()
     }
 
-    /// list configured aliases, optionally filtering on those containing `filter`
+    /// List configured aliases, optionally filtering on those containing `filter`.
     pub fn list_aliases(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
         trace!("alias() called with: {:#?}", filter);
 
@@ -69,7 +69,7 @@ impl ImmutableCommands {
         Ok(GitCommandResult::Success)
     }
 
-    /// list configuration settings (excluding aliases), optionally filtering on those containing `filter`
+    /// List configuration settings (excluding aliases), optionally filtering on those containing `filter`.
     pub fn list_configuration_settings(filter: Option<&str>, options: GitConfigOpts) -> GitResult {
         trace!("conf() called with: {:#?}", filter);
 

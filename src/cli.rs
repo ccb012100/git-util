@@ -12,7 +12,7 @@ pub(crate) struct Cli {
     #[clap(flatten)]
     pub(crate) options: CliOptions,
 
-    /// Catch-all for passing straight through to the native `git` binary; required if [COMMAND] is not specified
+    /// A catch-all for passing straight through to the native `git` binary; required if [COMMAND] is not specified.
     #[arg(allow_hyphen_values = true)]
     pub(crate) fallback: Option<Vec<String>>,
 
@@ -38,11 +38,11 @@ pub(crate) struct CliOptions {
 
 #[derive(Args, Debug, Clone, Copy)]
 pub(crate) struct GitConfigOpts {
-    /// Show the value's scope
+    /// Show the value's scope.
     #[arg(long, short = 's', action = clap::ArgAction::Set, default_value_t = false)]
     pub(crate) show_scope: bool,
 
-    /// Show the value's origin
+    /// Show the value's origin.
     #[arg(long, short = 'o', action = clap::ArgAction::Set, default_value_t = false)]
     pub(crate) show_origin: bool,
 }

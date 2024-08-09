@@ -21,7 +21,7 @@ a           Wrapper around `git-add`
 aa          Add updated and untracked files
 aac         Add updated and untracked files and then commit
 alias       List configured aliases
-auc         Add updated files and then commit
+auc         Commit updated files
 author      Reset author to current value of `user.author` and `user.email` for the last n commits
 conf        List config settings (excluding aliases)
 hook        Call a git hook

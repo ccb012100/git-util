@@ -23,7 +23,7 @@ impl MutableCommands {
 
     /// `git add --all`
     ///
-    /// Fails if there are already staged files
+    /// Fails if there are already staged files.
     pub fn add_all() -> GitResult {
         trace!("add_all called");
 
@@ -54,7 +54,7 @@ impl MutableCommands {
             ));
         }
 
-        // equivalent to `git add --update && git status --short`
+        // Equivalent to `git add --update && git status --short`
         let result: GitCommandResult = GitCommand {
             subcommand: "add",
             default_args: &["--update"],
@@ -75,7 +75,7 @@ impl MutableCommands {
 
     /// `git add --all && git commit`
     ///
-    /// Fails if there are already staged files
+    /// Fails if there are already staged files.
     pub fn add_all_and_commit(args: &[String]) -> GitResult {
         trace!("aac() called with: {:#?}", args);
 
@@ -112,7 +112,7 @@ impl MutableCommands {
         .execute_git_command()
     }
 
-    /// Changes the author on the last n commits to the current git user
+    /// Changes the author on the last n commits to the current git user.
     pub fn update_commit_author(num: Option<u16>) -> GitResult {
         trace!("author() called with: {:#?}", num);
         GitCommand {
