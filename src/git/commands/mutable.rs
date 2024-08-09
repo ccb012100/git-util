@@ -9,6 +9,7 @@ impl MutableCommands {
     /// `git add ARGS`
     pub fn add(args: &[String]) -> GitResult {
         trace!("add() called with: {:#?}", args);
+
         if args.is_empty() {
             return Err(anyhow!("Must supply arguments"));
         }
@@ -25,21 +26,13 @@ impl MutableCommands {
     ///
     /// Fails if there are already staged files.
     pub fn add_all() -> GitResult {
-        trace!("add_all called");
+        trace!("add_all() called");
 
-        if let GitCommandResult::Error = Git::verify_staging_area_is_empty()? {
-            return Err(anyhow!(
-                "Can not add updated and untracked files to staging area; there are already staged files!"
-            ));
-        }
-
-        // equivalent to `git add --all && git commit`
-        GitCommand {
+        Self::run_if_staging_empty(GitCommand {
             subcommand: "add",
             default_args: &["--all"],
             user_args: &[],
-        }
-        .execute_git_command()
+        })
     }
 
     /// `git add --update && git status --short`
@@ -100,16 +93,24 @@ impl MutableCommands {
     pub fn commit_all_updated_files(args: &[String]) -> GitResult {
         trace!("auc() called with: {:#?}", args);
 
-        if let GitCommandResult::Error = Git::verify_staging_area_is_empty()? {
-            return Err(anyhow!("There are already staged files!"));
-        }
-
-        GitCommand {
+        Self::run_if_staging_empty(GitCommand {
             subcommand: "commit",
             default_args: &["--all"],
             user_args: args,
-        }
-        .execute_git_command()
+        })
+    }
+
+    /// `git commit --all --amend`
+    ///
+    /// Fails if there are already staged files.
+    pub fn commit_all_updated_files_amended() -> GitResult {
+        trace!("commit_all_updated_files_amended() called");
+
+        Self::run_if_staging_empty(GitCommand {
+            subcommand: "commit",
+            default_args: &["--all", "--amend"],
+            user_args: &[],
+        })
     }
 
     /// Changes the author on the last n commits to the current git user.
@@ -199,5 +200,15 @@ impl MutableCommands {
             user_args: &[format!("{0}:{0}", branch)],
         }
         .execute_git_command()
+    }
+
+    fn run_if_staging_empty(command: GitCommand) -> GitResult {
+        trace!("run_if_staging_empty() called");
+
+        if let GitCommandResult::Error = Git::verify_staging_area_is_empty()? {
+            return Err(anyhow!("There are already files in the staging area!"));
+        }
+
+        command.execute_git_command()
     }
 }

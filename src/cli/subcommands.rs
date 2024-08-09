@@ -59,6 +59,11 @@ pub(crate) enum Subcommands {
         /// Command arguments
         args: Vec<String>,
     },
+    /// Stage updated files and amend the previous commit.
+    ///
+    /// Fails if the staging area is not empty when subcommand is run.
+    #[clap(alias = "aum")]
+    Aumend {},
     /// Reset author to current value of `user.author` and `user.email` for the last n commits.
     Author {
         /// Number of commits to reset (else defaults to 1)
@@ -166,6 +171,7 @@ impl Subcommands {
                 },
             ),
             Subcommands::Auc { args } => MutableCommands::commit_all_updated_files(args),
+            Subcommands::Aumend {  } => MutableCommands::commit_all_updated_files_amended(),
             Subcommands::Author { num } => MutableCommands::update_commit_author(*num),
             Subcommands::Conf { filter, options } => {
                 ImmutableCommands::list_configuration_settings(
