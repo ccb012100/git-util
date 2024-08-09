@@ -165,7 +165,7 @@ impl Subcommands {
                     show_scope: options.show_scope,
                 },
             ),
-            Subcommands::Auc { args } => MutableCommands::add_updated_files_and_commit(args),
+            Subcommands::Auc { args } => MutableCommands::commit_all_updated_files(args),
             Subcommands::Author { num } => MutableCommands::update_commit_author(*num),
             Subcommands::Conf { filter, options } => {
                 ImmutableCommands::list_configuration_settings(

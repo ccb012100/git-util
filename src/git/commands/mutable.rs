@@ -90,21 +90,26 @@ impl MutableCommands {
         }
     }
 
-    /// `git add --update && git commit`
+    /// `git commit --all`
     ///
-    /// Fails if there are already staged files
-    pub fn add_updated_files_and_commit(args: &[String]) -> GitResult {
+    /// The success case is logically equivalent to `git add --update && git commit`, but differs in the failure case.
+    /// In the case of 2 separate **Git** commands, cancelling out of the commit (e.g. `:q!` in **Vim**) will still
+    /// leave the staging area updated. In this version, the staging area is not updated if the commit is cancelled.
+    ///
+    /// Fails if there are already staged files.
+    pub fn commit_all_updated_files(args: &[String]) -> GitResult {
         trace!("auc() called with: {:#?}", args);
 
-        match Self::add_updated()? {
-            GitCommandResult::Success => GitCommand {
-                subcommand: "commit",
-                default_args: &[],
-                user_args: args,
-            }
-            .execute_git_command(),
-            GitCommandResult::Error => Err(anyhow!("git add --update returned an error")),
+        if let GitCommandResult::Error = Git::verify_staging_area_is_empty()? {
+            return Err(anyhow!("There are already staged files!"));
         }
+
+        GitCommand {
+            subcommand: "commit",
+            default_args: &["--all"],
+            user_args: args,
+        }
+        .execute_git_command()
     }
 
     /// Changes the author on the last n commits to the current git user
