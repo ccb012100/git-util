@@ -166,9 +166,9 @@ impl Subcommands {
                 Some(args) => MutableCommands::add(args),
                 None => MutableCommands::add_updated(),
             },
-            Subcommands::Aa {} => MutableCommands::add_all(),
-            Subcommands::Aac { args } => MutableCommands::commit_all(args),
-            Subcommands::Aamend {} => MutableCommands::commit_all_amended(),
+            Subcommands::Aa {} => MutableCommands::add_updated_untracked(),
+            Subcommands::Aac { args } => MutableCommands::commit_updated_untracked(args),
+            Subcommands::Aamend {} => MutableCommands::commit_updated_and_untracked_amend(),
             Subcommands::Alias { filter, options } => ImmutableCommands::list_aliases(
                 filter.as_deref(),
                 crate::git::GitConfigOpts {
@@ -176,8 +176,8 @@ impl Subcommands {
                     show_scope: options.show_scope,
                 },
             ),
-            Subcommands::Auc { args } => MutableCommands::commit_all_updated_files(args),
-            Subcommands::Aumend {} => MutableCommands::commit_all_updated_files_amended(),
+            Subcommands::Auc { args } => MutableCommands::commit_updated(args),
+            Subcommands::Aumend {} => MutableCommands::commit_updated_amend(),
             Subcommands::Author { num } => MutableCommands::update_commit_author(*num),
             Subcommands::Conf { filter, options } => {
                 ImmutableCommands::list_configuration_settings(

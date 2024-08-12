@@ -25,7 +25,7 @@ impl MutableCommands {
     /// `git add --all`
     ///
     /// Fails if there are already staged files.
-    pub fn add_all() -> GitResult {
+    pub fn add_updated_untracked() -> GitResult {
         trace!("add_all() called");
 
         Self::run_if_staging_empty(GitCommand {
@@ -69,11 +69,16 @@ impl MutableCommands {
     /// `git add --all && git commit`
     ///
     /// Fails if there are already staged files.
-    pub fn commit_all(args: &[String]) -> GitResult {
+    pub fn commit_updated_untracked(args: &[String]) -> GitResult {
         trace!("aac() called with: {:#?}", args);
 
-        match Self::add_all()? {
-            GitCommandResult::Success => Self::commit_no_args(),
+        match Self::add_updated_untracked()? {
+            GitCommandResult::Success => GitCommand {
+                subcommand: "commit",
+                default_args: &[],
+                user_args: &[],
+            }
+            .execute_git_command(),
             GitCommandResult::Error => Err(anyhow!("git add --all returned an error")),
         }
     }
@@ -81,10 +86,10 @@ impl MutableCommands {
     /// `git add --all && git commit --amend`
     ///
     /// Fails if there are already staged files.
-    pub fn commit_all_amended() -> GitResult {
+    pub fn commit_updated_and_untracked_amend() -> GitResult {
         trace!("commit_all_amended called");
 
-        match Self::add_all()? {
+        match Self::add_updated_untracked()? {
             GitCommandResult::Success => GitCommand {
                 subcommand: "commit",
                 default_args: &["--all", "--amend"],
@@ -102,7 +107,7 @@ impl MutableCommands {
     /// leave the staging area updated. In this version, the staging area is not updated if the commit is cancelled.
     ///
     /// Fails if there are already staged files.
-    pub fn commit_all_updated_files(args: &[String]) -> GitResult {
+    pub fn commit_updated(args: &[String]) -> GitResult {
         trace!("auc() called with: {:#?}", args);
 
         Self::run_if_staging_empty(GitCommand {
@@ -115,7 +120,7 @@ impl MutableCommands {
     /// `git commit --all --amend`
     ///
     /// Fails if there are already staged files.
-    pub fn commit_all_updated_files_amended() -> GitResult {
+    pub fn commit_updated_amend() -> GitResult {
         trace!("commit_all_updated_files_amended() called");
 
         Self::run_if_staging_empty(GitCommand {
@@ -225,17 +230,5 @@ impl MutableCommands {
         }
 
         command.execute_git_command()
-    }
-
-    /// Run the command `git commit`
-    fn commit_no_args() -> GitResult {
-        trace!(" called");
-
-        GitCommand {
-            subcommand: "commit",
-            default_args: &[],
-            user_args: &[],
-        }
-        .execute_git_command()
     }
 }
