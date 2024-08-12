@@ -42,6 +42,11 @@ pub(crate) enum Subcommands {
         /// Command arguments
         args: Vec<String>,
     },
+    /// Stage updated and untracked files and amend the previous commit.
+    ///
+    /// Fails if the staging area is not empty when subcommand is run.
+    #[clap(alias = "aam")]
+    Aamend {},
     /// List configured aliases
     Alias {
         /// text to filter on
@@ -162,7 +167,8 @@ impl Subcommands {
                 None => MutableCommands::add_updated(),
             },
             Subcommands::Aa {} => MutableCommands::add_all(),
-            Subcommands::Aac { args } => MutableCommands::add_all_and_commit(args),
+            Subcommands::Aac { args } => MutableCommands::commit_all(args),
+            Subcommands::Aamend {} => MutableCommands::commit_all_amended(),
             Subcommands::Alias { filter, options } => ImmutableCommands::list_aliases(
                 filter.as_deref(),
                 crate::git::GitConfigOpts {
@@ -171,7 +177,7 @@ impl Subcommands {
                 },
             ),
             Subcommands::Auc { args } => MutableCommands::commit_all_updated_files(args),
-            Subcommands::Aumend {  } => MutableCommands::commit_all_updated_files_amended(),
+            Subcommands::Aumend {} => MutableCommands::commit_all_updated_files_amended(),
             Subcommands::Author { num } => MutableCommands::update_commit_author(*num),
             Subcommands::Conf { filter, options } => {
                 ImmutableCommands::list_configuration_settings(

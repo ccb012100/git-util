@@ -69,14 +69,26 @@ impl MutableCommands {
     /// `git add --all && git commit`
     ///
     /// Fails if there are already staged files.
-    pub fn add_all_and_commit(args: &[String]) -> GitResult {
+    pub fn commit_all(args: &[String]) -> GitResult {
         trace!("aac() called with: {:#?}", args);
+
+        match Self::add_all()? {
+            GitCommandResult::Success => Self::commit_no_args(),
+            GitCommandResult::Error => Err(anyhow!("git add --all returned an error")),
+        }
+    }
+
+    /// `git add --all && git commit --amend`
+    ///
+    /// Fails if there are already staged files.
+    pub fn commit_all_amended() -> GitResult {
+        trace!("commit_all_amended called");
 
         match Self::add_all()? {
             GitCommandResult::Success => GitCommand {
                 subcommand: "commit",
-                default_args: &[],
-                user_args: args,
+                default_args: &["--all", "--amend"],
+                user_args: &[],
             }
             .execute_git_command(),
             GitCommandResult::Error => Err(anyhow!("git add --all returned an error")),
@@ -202,6 +214,9 @@ impl MutableCommands {
         .execute_git_command()
     }
 
+    /// Run `command` if the staging area is empty.
+    ///
+    /// Fails if there are already staged files.
     fn run_if_staging_empty(command: GitCommand) -> GitResult {
         trace!("run_if_staging_empty() called");
 
@@ -210,5 +225,17 @@ impl MutableCommands {
         }
 
         command.execute_git_command()
+    }
+
+    /// Run the command `git commit`
+    fn commit_no_args() -> GitResult {
+        trace!(" called");
+
+        GitCommand {
+            subcommand: "commit",
+            default_args: &[],
+            user_args: &[],
+        }
+        .execute_git_command()
     }
 }
