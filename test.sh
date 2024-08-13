@@ -17,4 +17,4 @@ util="$scriptdir"/target/debug/git-util
     # GIT_UTIL_DISALLOWED_STRINGS="let|match" \
     # $util -vvv --print-command hook pre-commit
 
-$util -vvvv alias rebase
+$util -vvvv l
