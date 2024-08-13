@@ -19,15 +19,13 @@ impl ImmutableCommands {
     pub fn compact_summary_log(num: Option<u16>, args: &[String]) -> GitResult {
         trace!("last() called with: {:#?}, {:#?}", num, args);
 
-        GitCommand {
-            subcommand: "log",
-            default_args: &[
+        GitCommand::new("log")
+            .with_default_args(&[
                 "--compact-summary",
                 &format!("--max-count={}", num.unwrap_or(1)),
-            ],
-            user_args: args,
-        }
-        .execute_git_command()
+            ])
+            .with_user_args(args)
+            .run()
     }
 
     /// List configured aliases, optionally filtering on those containing `filter`.
@@ -110,17 +108,15 @@ impl ImmutableCommands {
     pub fn one_line_log(num: Option<u16>, args: &[String]) -> GitResult {
         trace!("log_oneline() called with: {:#?}", num);
 
-        let log_output: Output = GitCommand {
-            subcommand: "log",
-            default_args: &[
+        let log_output: Output = GitCommand::new("log")
+            .with_default_args(&[
                 "--pretty='%C(yellow)%h %C(magenta)%as %C(blue)%aL %C(cyan)%s%C(reset)'",
                 &format!("--max-count={}", num.unwrap_or(25)),
-            ],
-            user_args: args,
-        }
-        .construct_git_command()
-        .output()
-        .with_context(|| "Failed to execute 'git log' command")?;
+            ])
+            .with_user_args(args)
+            .construct_git_command()
+            .output()
+            .with_context(|| "Failed to execute 'git log' command")?;
 
         match log_output.status.success() {
             true => {
@@ -154,30 +150,25 @@ impl ImmutableCommands {
     pub fn show(num: Option<u16>, args: &[String]) -> GitResult {
         trace!("show() called with: {:#?}", num);
 
-        GitCommand {
-            subcommand: "show",
-            default_args: &[
+        GitCommand::new("show")
+            .with_default_args(&[
                 "--expand-tabs=4",
                 &format!("--max-count={}", num.unwrap_or(1)),
-            ],
-            user_args: args,
-        }
-        .execute_git_command()
+            ])
+            .with_user_args(args)
+            .run()
     }
 
     /// `git show --pretty='' --name-only --max-count=NUM`
     pub fn show_files(num: Option<u16>) -> GitResult {
         trace!("show_files() called with: {:#?}", num);
 
-        GitCommand {
-            subcommand: "show",
-            default_args: &[
+        GitCommand::new("show")
+            .with_default_args(&[
                 "--pretty=",
                 "--name-only",
                 &format!("--max-count={}", num.unwrap_or(1)),
-            ],
-            user_args: &[],
-        }
-        .execute_git_command()
+            ])
+            .run()
     }
 }

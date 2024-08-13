@@ -14,12 +14,7 @@ impl MutableCommands {
             return Err(anyhow!("Must supply arguments"));
         }
 
-        GitCommand {
-            subcommand: "add",
-            default_args: &[],
-            user_args: args,
-        }
-        .execute_git_command()
+        GitCommand::new("add").run()
     }
 
     /// `git add --all`
@@ -28,11 +23,7 @@ impl MutableCommands {
     pub fn add_updated_untracked() -> GitResult {
         trace!("add_all() called");
 
-        Self::run_if_staging_empty(GitCommand {
-            subcommand: "add",
-            default_args: &["--all"],
-            user_args: &[],
-        })
+        Self::run_if_staging_empty(GitCommand::new("add").with_default_args(&["--all"]))
     }
 
     /// `git add --update && git status --short`
@@ -48,20 +39,13 @@ impl MutableCommands {
         }
 
         // Equivalent to `git add --update && git status --short`
-        let result: GitCommandResult = GitCommand {
-            subcommand: "add",
-            default_args: &["--update"],
-            user_args: &[],
-        }
-        .execute_git_command()?;
+        let result =
+            Self::run_if_staging_empty(GitCommand::new("add").with_default_args(&["--update"]))?;
 
         match result {
-            GitCommandResult::Success => GitCommand {
-                subcommand: "status",
-                default_args: &["--short"],
-                user_args: &[],
-            }
-            .execute_git_command(),
+            GitCommandResult::Success => GitCommand::new("status")
+                .with_default_args(&["--short"])
+                .run(),
             GitCommandResult::Error => Err(anyhow!("git add --update returned an error")),
         }
     }
@@ -69,16 +53,11 @@ impl MutableCommands {
     /// `git add --all && git commit`
     ///
     /// Fails if there are already staged files.
-    pub fn commit_updated_untracked(args: &[String]) -> GitResult {
-        trace!("aac() called with: {:#?}", args);
+    pub fn commit_updated_untracked() -> GitResult {
+        trace!("aac() called");
 
         match Self::add_updated_untracked()? {
-            GitCommandResult::Success => GitCommand {
-                subcommand: "commit",
-                default_args: &[],
-                user_args: &[],
-            }
-            .execute_git_command(),
+            GitCommandResult::Success => GitCommand::new("commit").run(),
             GitCommandResult::Error => Err(anyhow!("git add --all returned an error")),
         }
     }
@@ -90,12 +69,9 @@ impl MutableCommands {
         trace!("commit_all_amended called");
 
         match Self::add_updated_untracked()? {
-            GitCommandResult::Success => GitCommand {
-                subcommand: "commit",
-                default_args: &["--all", "--amend"],
-                user_args: &[],
-            }
-            .execute_git_command(),
+            GitCommandResult::Success => GitCommand::new("commit")
+                .with_default_args(&["--amend"])
+                .run(),
             GitCommandResult::Error => Err(anyhow!("git add --all returned an error")),
         }
     }
@@ -107,14 +83,10 @@ impl MutableCommands {
     /// leave the staging area updated. In this version, the staging area is not updated if the commit is cancelled.
     ///
     /// Fails if there are already staged files.
-    pub fn commit_updated(args: &[String]) -> GitResult {
-        trace!("auc() called with: {:#?}", args);
+    pub fn commit_updated() -> GitResult {
+        trace!("auc() called");
 
-        Self::run_if_staging_empty(GitCommand {
-            subcommand: "commit",
-            default_args: &["--all"],
-            user_args: args,
-        })
+        Self::run_if_staging_empty(GitCommand::new("commit").with_default_args(&["--all"]))
     }
 
     /// `git commit --all --amend`
@@ -123,100 +95,81 @@ impl MutableCommands {
     pub fn commit_updated_amend() -> GitResult {
         trace!("commit_all_updated_files_amended() called");
 
-        Self::run_if_staging_empty(GitCommand {
-            subcommand: "commit",
-            default_args: &["--all", "--amend"],
-            user_args: &[],
-        })
+        Self::run_if_staging_empty(
+            GitCommand::new("commit").with_default_args(&["--all", "--amend"]),
+        )
     }
 
     /// Changes the author on the last n commits to the current git user.
     pub fn update_commit_author(num: Option<u16>) -> GitResult {
         trace!("author() called with: {:#?}", num);
-        GitCommand {
-            subcommand: "rebase",
-            default_args: &[
+
+        GitCommand::new("rebase")
+            .with_default_args(&[
                 &format!("HEAD~{}", num.unwrap_or(1)),
                 "-x",
                 "git commit --amend --no-edit --reset-author",
-            ],
-            user_args: &[],
-        }
-        .execute_git_command()
+            ])
+            .run()
     }
 
     /// Wrapper around `git-restore`
     pub fn restore(args: &[String]) -> GitResult {
         trace!("restore() called with: {:#?}", args);
 
-        GitCommand {
-            subcommand: "restore",
-            default_args: &[],
-            user_args: args,
-        }
-        .execute_git_command()
+        GitCommand::new("restore").run()
     }
 
     /// `git restore :/`
     pub fn restore_all() -> GitResult {
         trace!("restore_all() called");
 
-        GitCommand {
-            subcommand: "restore",
-            default_args: &[":/"],
-            user_args: &[],
-        }
-        .execute_git_command()
+        GitCommand::new("restore").with_default_args(&[":/"]).run()
     }
 
     /// `git reset --mixed HEAD~NUM`
     pub fn undo_commits(num: Option<u16>) -> GitResult {
         trace!("undo() called with: {:#?}", num);
 
-        GitCommand {
-            subcommand: "reset",
-            default_args: &["--mixed", &format!("HEAD~{}", num.unwrap_or(1))],
-            user_args: &[],
-        }
-        .execute_git_command()
+        GitCommand::new("reset")
+            .with_default_args(&["--mixed", &format!("HEAD~{}", num.unwrap_or(1))])
+            .run()
     }
 
     /// `git restore --staged ARGS`
     pub fn unstage(args: &[String]) -> GitResult {
         trace!("unstage() called with: {:#?}", args);
-        debug_assert!(!args.is_empty());
 
-        GitCommand {
-            subcommand: "restore",
-            default_args: &["--staged"],
-            user_args: args,
+        if args.is_empty() {
+            return Err(anyhow!("Must supply arguments"));
         }
-        .execute_git_command()
+
+        GitCommand::new("restore")
+            .with_default_args(&["--staged"])
+            .run()
     }
 
     /// `git restore --staged :/`
     pub fn unstage_all() -> GitResult {
         debug!("update_all() called");
 
-        GitCommand {
-            subcommand: "restore",
-            default_args: &["--staged", ":/"],
-            user_args: &[],
-        }
-        .execute_git_command()
+        GitCommand::new("restore")
+            .with_default_args(&["--staged", ":/"])
+            .run()
     }
 
     // `git fetch --verbose origin:BRANCH`
     pub fn update_branch_from_remote(branch: &String) -> GitResult {
         debug!("update() called with: {:#?}", branch);
-        debug_assert!(!branch.is_empty());
 
-        GitCommand {
-            subcommand: "fetch",
-            default_args: &["--verbose", "origin"],
-            user_args: &[format!("{0}:{0}", branch)],
+        if branch.is_empty() {
+            return Err(anyhow!("Must supply branch name"));
         }
-        .execute_git_command()
+
+        GitCommand::new("fetch")
+            .with_default_args(&["--verbose", "origin"])
+            .with_user_args(&[format!("{0}:{0}", branch)])
+            .run()
     }
 
     /// Run `command` if the staging area is empty.
@@ -229,6 +182,6 @@ impl MutableCommands {
             return Err(anyhow!("There are already files in the staging area!"));
         }
 
-        command.execute_git_command()
+        command.run()
     }
 }

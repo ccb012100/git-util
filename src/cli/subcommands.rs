@@ -38,10 +38,7 @@ pub(crate) enum Subcommands {
     ///
     /// Fails if the staging area is not empty before attempting to add files.
     #[command(allow_hyphen_values = true)]
-    Aac {
-        /// Command arguments
-        args: Vec<String>,
-    },
+    Aac {},
     /// Stage updated and untracked files and amend the previous commit.
     ///
     /// Fails if the staging area is not empty when subcommand is run.
@@ -60,10 +57,7 @@ pub(crate) enum Subcommands {
     /// Fails if the staging area is not empty when subcommand is run.
     #[clap(alias = "ac")]
     #[command(allow_hyphen_values = true)]
-    Auc {
-        /// Command arguments
-        args: Vec<String>,
-    },
+    Auc {},
     /// Stage updated files and amend the previous commit.
     ///
     /// Fails if the staging area is not empty when subcommand is run.
@@ -167,7 +161,7 @@ impl Subcommands {
                 None => MutableCommands::add_updated(),
             },
             Subcommands::Aa {} => MutableCommands::add_updated_untracked(),
-            Subcommands::Aac { args } => MutableCommands::commit_updated_untracked(args),
+            Subcommands::Aac {} => MutableCommands::commit_updated_untracked(),
             Subcommands::Aamend {} => MutableCommands::commit_updated_and_untracked_amend(),
             Subcommands::Alias { filter, options } => ImmutableCommands::list_aliases(
                 filter.as_deref(),
@@ -176,7 +170,7 @@ impl Subcommands {
                     show_scope: options.show_scope,
                 },
             ),
-            Subcommands::Auc { args } => MutableCommands::commit_updated(args),
+            Subcommands::Auc {} => MutableCommands::commit_updated(),
             Subcommands::Aumend {} => MutableCommands::commit_updated_amend(),
             Subcommands::Author { num } => MutableCommands::update_commit_author(*num),
             Subcommands::Conf { filter, options } => {

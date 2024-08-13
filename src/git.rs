@@ -21,14 +21,12 @@ pub(crate) static PRINT_COMMANDS: AtomicBool = AtomicBool::new(false);
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(super) struct DefaultMaxCount(pub u8);
 
-/// Represents a call to the Git CLI in the form:
-///
-/// `git SUBCOMMAND [DEFAULT_ARGS]`
+/// Represents a call to the Git CLI in the form: `git SUBCOMMAND [DEFAULT_ARGS] [USER_ARGS]`
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct GitCommand<'a> {
-    pub(crate) subcommand: &'a str,
-    pub(crate) default_args: &'a [&'a str],
-    pub(crate) user_args: &'a [String],
+    subcommand: &'a str,
+    default_args: &'a [&'a str],
+    user_args: &'a [String],
 }
 
 /// The outcome of running a Git command; used to set exit code at end.
@@ -65,7 +63,7 @@ impl Git {
             user_args: if args.len() > 1 { &args[1..] } else { &[] },
         };
 
-        command.execute_git_command()
+        command.run()
     }
 
     /// Return `Success` if nothing is printed to stdout when `git diff --staged --name-only` is run.
@@ -85,8 +83,34 @@ impl Git {
 }
 
 impl GitCommand<'_> {
-    /// Construct and then execute a `std::process:Command` that calls `git`.
-    pub(crate) fn execute_git_command(&self) -> GitResult {
+    pub(crate) fn new(subcommand: &str) -> GitCommand<'_> {
+        GitCommand {
+            subcommand,
+            default_args: &[],
+            user_args: &[],
+        }
+    }
+
+    /// same as `self`, but with `defaults_args` set to `args`
+    pub(crate) fn with_default_args<'a>(&'a self, args: &'a [&'a str]) -> GitCommand {
+        GitCommand {
+            subcommand: self.subcommand,
+            default_args: args,
+            user_args: self.user_args,
+        }
+    }
+
+    /// same as `self`, but with `user_args` set to `args`
+    pub(crate) fn with_user_args<'a>(&'a self, args: &'a [String]) -> GitCommand {
+        GitCommand {
+            subcommand: self.subcommand,
+            default_args: self.default_args,
+            user_args: args,
+        }
+    }
+
+    /// Construct and then execute a `std::process:Command` that calls `git` with the **Git Subcommand** represented by `self`.
+    pub(crate) fn run(&self) -> GitResult {
         trace!("execute_git_command() called with: {:#?}", self);
 
         if self.construct_git_command().status()?.success() {
@@ -96,7 +120,7 @@ impl GitCommand<'_> {
         }
     }
 
-    /// Construct a `std::process:Command` that calls `git`.
+    /// Construct a `std::process:Command` that calls `git` using the **Git Subcommand** represented by `self`.
     pub(crate) fn construct_git_command(&self) -> Command {
         trace!("construct_git_command() called with: {:#?}", self);
 
