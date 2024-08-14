@@ -56,7 +56,7 @@ impl PreCommitHook {
                 // get diff for impending commit
                 let diff_changes_output: std::process::Output = GitCommand {
                     subcommand: "diff-index",
-                    default_args: &["--p", "--find-renames", "--cached", "HEAD"],
+                    default_args: &["--patch", "--find-renames", "--cached", "HEAD"],
                     user_args: &[],
                 }
                 .construct_git_command()
