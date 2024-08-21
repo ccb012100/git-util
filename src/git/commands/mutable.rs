@@ -117,7 +117,7 @@ impl MutableCommands {
     pub fn restore(args: &[String]) -> GitResult {
         trace!("restore() called with: {:#?}", args);
 
-        GitCommand::new("restore").run()
+        GitCommand::new("restore").with_user_args(args).run()
     }
 
     /// `git restore :/`
