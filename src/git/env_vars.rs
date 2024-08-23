@@ -2,7 +2,7 @@ use core::fmt;
 
 /// Environment variables used by the **git-util** application
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub(crate) enum GitUtilEnvVars {
+pub enum GitUtilEnvVars {
     /// The Regex string used to match against diff changes to find changes that are not allowed in a commit.
     DisallowedStrings,
     /// The email address that is used for commits.
@@ -11,7 +11,7 @@ pub(crate) enum GitUtilEnvVars {
 
 /// Environment variables used by **Git**.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub(crate) enum GitEnvVars {
+pub enum GitEnvVars {
     #[allow(dead_code)]
     AuthorDate,
     AuthorEmail,

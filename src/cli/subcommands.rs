@@ -7,19 +7,19 @@ use crate::git::{
 use clap::Subcommand;
 
 #[derive(Subcommand, Debug, Clone, Copy)]
-pub(crate) enum HookSubcommands {
+pub enum HookSubcommands {
     /// `pre-commit` hook
     PreCommit {},
 }
 
 /// Specify which files to operate a command against
 #[derive(Subcommand, Debug, Clone, Copy)]
-pub(crate) enum WhichFiles {
+pub enum WhichFiles {
     All,
 }
 
 #[derive(Subcommand, Debug)]
-pub(crate) enum Subcommands {
+pub enum Subcommands {
     /// Wrapper around `git-add`.
     ///
     /// - If called without `args`, it adds all unstaged files IFF the staging area is empty.
@@ -154,7 +154,7 @@ pub(crate) enum Subcommands {
 }
 
 impl Subcommands {
-    pub(crate) fn run(&self) -> Result<GitCommandResult, anyhow::Error> {
+    pub fn run(&self) -> Result<GitCommandResult, anyhow::Error> {
         match self {
             Subcommands::A { args } => match args {
                 Some(args) => MutableCommands::add(args),
@@ -212,7 +212,7 @@ impl Subcommands {
 }
 
 impl HookSubcommands {
-    pub(crate) fn run(&self) -> GitResult {
+    fn run(&self) -> GitResult {
         match self {
             HookSubcommands::PreCommit {} => PreCommitHook::run(),
         }
