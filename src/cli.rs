@@ -1,5 +1,5 @@
 use self::subcommands::Subcommands;
-use crate::git::{Git, GitResult, PRINT_COMMANDS};
+use crate::git::{Git, GitResult, PRINT_COMMANDS, DRY_RUN};
 use clap::{arg, command, error::ErrorKind, Args, CommandFactory, Parser};
 use log::{info, LevelFilter};
 use std::sync::atomic::Ordering;
@@ -34,6 +34,10 @@ pub(crate) struct CliOptions {
     /// Print the `std::process::Command`s that are executed
     #[arg(long, short = 'p')]
     pub(crate) print_command: bool,
+
+    /// Print the `std::process::Command`s that will be executed, but do not run
+    #[arg(long, short = 'd')]
+    pub(crate) dry_run: bool,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -49,7 +53,9 @@ pub(crate) struct GitConfigOpts {
 
 impl Cli {
     pub(crate) fn run_subcommand(&self) -> GitResult {
+        // global flags
         PRINT_COMMANDS.store(self.options.print_command, Ordering::Relaxed);
+        DRY_RUN.store(self.options.dry_run, Ordering::Relaxed);
 
         if let Some(args) = &self.fallback {
             Git::pass_through(args)

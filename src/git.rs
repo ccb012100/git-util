@@ -6,7 +6,7 @@ use std::{
     sync::atomic::AtomicBool,
 };
 
-use crate::commands::Commands;
+use crate::{commands::Commands, print::Print};
 
 pub(crate) mod commands;
 pub(crate) mod env_vars;
@@ -17,6 +17,9 @@ pub(crate) struct Git();
 
 /// Flag used to indicate whether or not to print the commands executed.
 pub(crate) static PRINT_COMMANDS: AtomicBool = AtomicBool::new(false);
+
+/// Flag used to indicate whether subcommand is a dry run
+pub(crate) static DRY_RUN: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(super) struct DefaultMaxCount(pub u8);
@@ -113,20 +116,48 @@ impl GitCommand<'_> {
     pub(crate) fn run(&self) -> GitResult {
         trace!("run() called with: {:#?}", self);
 
-        if self.construct_git_command().status()?.success() {
-            Ok(GitCommandResult::Success)
-        } else {
-            Ok(GitCommandResult::Error)
+        match DRY_RUN.load(std::sync::atomic::Ordering::SeqCst) {
+            true => {
+                Print::stderr_purple(&format!(
+                    "command that would be run: `{}`",
+                    self.construct_git_command_string()
+                ));
+                Ok(GitCommandResult::Success)
+            }
+            false => {
+                if self.construct_git_command().status()?.success() {
+                    Ok(GitCommandResult::Success)
+                } else {
+                    Ok(GitCommandResult::Error)
+                }
+            }
         }
+    }
+
+    /// Construct a `std::process:Command` that calls `git` using the **Git Subcommand** represented by `self`.
+    fn construct_git_command_string(&self) -> String {
+        trace!("construct_git_command() called with: {:#?}", self);
+
+        let command_args = self.parse_command_args();
+
+        format!("git {} {}", self.subcommand, command_args.join(" "))
     }
 
     /// Construct a `std::process:Command` that calls `git` using the **Git Subcommand** represented by `self`.
     pub(crate) fn construct_git_command(&self) -> Command {
         trace!("construct_git_command() called with: {:#?}", self);
 
+        let command_args = self.parse_command_args();
+
+        Commands::new_command_with_args("git", &command_args)
+    }
+
+    fn parse_command_args(&self) -> Vec<&str> {
+        trace!("parse_command_args() called with: {:#?}", self);
+
         let mut command_args: Vec<&str> = match stdout().is_terminal() {
             /* Force color on subcommands that support it.
-             * Note that this will force color, but `isatty()` will still be false. */
+             * Note: this will force color, but `isatty()` will still be false. */
             true => vec!["-c", "color.ui=always", self.subcommand],
             false => vec![self.subcommand],
         };
@@ -143,6 +174,6 @@ impl GitCommand<'_> {
 
         debug!("parsed command args: {:#?}", command_args);
 
-        Commands::new_command_with_args("git", &command_args)
+        command_args
     }
 }
