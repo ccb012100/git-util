@@ -111,7 +111,7 @@ impl GitCommand<'_> {
 
     /// Construct and then execute a `std::process:Command` that calls `git` with the **Git Subcommand** represented by `self`.
     pub(crate) fn run(&self) -> GitResult {
-        trace!("execute_git_command() called with: {:#?}", self);
+        trace!("run() called with: {:#?}", self);
 
         if self.construct_git_command().status()?.success() {
             Ok(GitCommandResult::Success)
