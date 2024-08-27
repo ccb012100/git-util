@@ -1,6 +1,7 @@
 # git-util
 
-CLI utility for working with the Git CLI. I use it as a wrapper around the `git` CLI by copying the executable to `$HOME/bin/git-util` and then aliasing `git` to a `fish` shell function in `$HOME/.config/fish/functions/git.fish`:
+CLI utility for working with the Git CLI. I use it as a wrapper around the `git` CLI by copying the executable to `$HOME/bin/git-util` and then
+aliasing `git` to a `fish` shell function in `$HOME/.config/fish/functions/git.fish`:
 
 ```fish
 function git --wraps=/home/linuxbrew/.linuxbrew/bin/git --description 'wraps the Git CLI with $HOME/bin/git-util application'
@@ -8,7 +9,8 @@ function git --wraps=/home/linuxbrew/.linuxbrew/bin/git --description 'wraps the
 end
 ```
 
-This project was precipitated by wanting more powerful [Git aliases](https://git-scm.com/book/en/v2/Git-Basics-Git-Aliases) and becoming frustrated with the limitations and ergonomics of using [Bash functions](https://www.atlassian.com/blog/git/advanced-git-aliases) in `.gitconfig`.
+This project was precipitated by wanting more powerful [Git aliases](https://git-scm.com/book/en/v2/Git-Basics-Git-Aliases) and becoming frustrated
+with the limitations and ergonomics of using [Bash functions](https://www.atlassian.com/blog/git/advanced-git-aliases) in `.gitconfig`.
 
 ## Usage
 
@@ -51,4 +53,5 @@ Options:
   -V, --version        Print version
 ```
 
-Any subcommand passed to `git-util` that does not match the above list of subcommands will be passed through to the `git` CLI, e.g. `git-util foo` will evaluate to `git foo`. This allows me to alias it to `git` and have the subcommands act as git aliases.
+Any subcommand passed to `git-util` that does not match the above list of subcommands will be passed through to the `git` CLI, e.g. `git-util foo`
+will evaluate to `git foo`. This allows me to alias it to `git` and have the subcommands act as git aliases.

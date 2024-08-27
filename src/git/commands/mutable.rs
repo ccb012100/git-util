@@ -146,6 +146,7 @@ impl MutableCommands {
 
         GitCommand::new("restore")
             .with_default_args(&["--staged"])
+            .with_user_args(args)
             .run()
     }
 
