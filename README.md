@@ -1,5 +1,7 @@
 # git-util
 
+[![Rust](https://github.com/ccb012100/git-util/actions/workflows/rust.yml/badge.svg)](https://github.com/ccb012100/git-util/actions/workflows/rust.yml)
+
 CLI utility for working with the Git CLI. I use it as a wrapper around the `git` CLI by copying the executable to `$HOME/bin/git-util` and then
 aliasing `git` to a `fish` shell function in `$HOME/.config/fish/functions/git.fish`:
 
