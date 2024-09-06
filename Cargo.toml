@@ -7,7 +7,12 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
-clap = { version = "4.4.7", features = ["derive", "wrap_help"] }
+clap = { version = "4.4.7", features = [
+    "derive",
+    "wrap_help",
+    "help",
+    "color",
+] }
 env_logger = "0.10.0"
 log = "0.4.20"
 nu-ansi-term = "0.49.0"

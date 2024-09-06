@@ -1,12 +1,25 @@
 use self::subcommands::Subcommands;
 use crate::git::{Git, GitResult, DRY_RUN, PRINT_COMMANDS};
-use clap::{arg, command, error::ErrorKind, Args, CommandFactory, Parser};
+use clap::{
+    arg,
+    builder::{styling::AnsiColor, Styles},
+    command,
+    error::ErrorKind,
+    Args, CommandFactory, Parser,
+};
 use log::{info, LevelFilter};
 use std::sync::atomic::Ordering;
 
 mod subcommands;
 
+const STYLES: Styles = Styles::styled()
+    .header(AnsiColor::Yellow.on_default())
+    .usage(AnsiColor::Green.on_default())
+    .literal(AnsiColor::Green.on_default())
+    .placeholder(AnsiColor::Green.on_default());
+
 #[derive(Parser, Debug)]
+#[command(styles=STYLES)]
 #[command(about, version, arg_required_else_help = true)]
 pub struct Cli {
     #[clap(flatten)]
