@@ -30,9 +30,10 @@ impl Print {
 
     /// Print `message` in `color` to `stderr`.
     fn stderr_color(message: &str, color: Color) {
-        match stderr().is_terminal() {
-            true => Self::stderr(color.bold().paint(message)),
-            false => eprintln!("{}", message),
+        if stderr().is_terminal() {
+            Self::stderr(color.bold().paint(message))
+        } else {
+            eprintln!("{}", message)
         }
     }
 

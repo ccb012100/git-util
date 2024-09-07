@@ -116,21 +116,16 @@ impl GitCommand<'_> {
     fn run(&self) -> GitResult {
         trace!("run() called with: {:#?}", self);
 
-        match DRY_RUN.load(std::sync::atomic::Ordering::SeqCst) {
-            true => {
-                Print::stderr_purple(&format!(
-                    "command that would be run: `{}`",
-                    self.construct_git_command_string()
-                ));
-                Ok(GitCommandResult::Success)
-            }
-            false => {
-                if self.construct_git_command().status()?.success() {
-                    Ok(GitCommandResult::Success)
-                } else {
-                    Ok(GitCommandResult::Error)
-                }
-            }
+        if DRY_RUN.load(std::sync::atomic::Ordering::SeqCst) {
+            Print::stderr_purple(&format!(
+                "command that would be run: `{}`",
+                self.construct_git_command_string()
+            ));
+            Ok(GitCommandResult::Success)
+        } else if self.construct_git_command().status()?.success() {
+            Ok(GitCommandResult::Success)
+        } else {
+            Ok(GitCommandResult::Error)
         }
     }
 
@@ -155,11 +150,10 @@ impl GitCommand<'_> {
     fn parse_command_args(&self) -> Vec<&str> {
         trace!("parse_command_args() called with: {:#?}", self);
 
-        let mut command_args: Vec<&str> = match stdout().is_terminal() {
-            /* Force color on subcommands that support it.
-             * Note: this will force color, but `isatty()` will still be false. */
-            true => vec!["-c", "color.ui=always", self.subcommand],
-            false => vec![self.subcommand],
+        let mut command_args: Vec<&str> = if stdout().is_terminal() {
+            vec!["-c", "color.ui=always", self.subcommand]
+        } else {
+            vec![self.subcommand]
         };
 
         if !self.default_args.is_empty() {

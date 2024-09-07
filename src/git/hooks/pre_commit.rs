@@ -63,28 +63,26 @@ impl PreCommitHook {
                 .output()
                 .with_context(|| "Failed to execute 'git diff-index' command")?;
 
-                match diff_changes_output.status.success() {
-                    true => {
-                        let stdout = String::from_utf8(diff_changes_output.stdout)?;
-                        let stdout = stdout.lines();
+                if diff_changes_output.status.success() {
+                    let stdout = String::from_utf8(diff_changes_output.stdout)?;
+                    let stdout = stdout.lines();
 
-                        let re =
-                            Regex::new(format!("(?i){}", disallowed_strings.as_str()).as_str())
-                                .unwrap();
+                    let re = Regex::new(format!("(?i){}", disallowed_strings.as_str()).as_str())
+                        .unwrap();
 
-                        debug!("{:#?}", re);
+                    debug!("{:#?}", re);
 
-                        // filter down to code additions only
-                        for line in stdout.filter(|line| line.starts_with('+')) {
-                            if re.is_match(line) {
-                                Print::stderr_purple(&format!("Disallowed addition:\n\n{line}"));
+                    // filter down to code additions only
+                    for line in stdout.filter(|line| line.starts_with('+')) {
+                        if re.is_match(line) {
+                            Print::stderr_purple(&format!("Disallowed addition:\n\n{line}"));
 
-                                return Err(anyhow!("Disallowed string found in commit changes!"));
-                            }
+                            return Err(anyhow!("Disallowed string found in commit changes!"));
                         }
-                        debug!("No disallowed changes found");
                     }
-                    false => io::stdout().write_all(&diff_changes_output.stdout)?,
+                    debug!("No disallowed changes found");
+                } else {
+                    io::stdout().write_all(&diff_changes_output.stdout)?
                 }
 
                 io::stderr().write_all(&diff_changes_output.stderr)?;

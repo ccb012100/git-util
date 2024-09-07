@@ -118,31 +118,28 @@ impl ImmutableCommands {
             .output()
             .with_context(|| "Failed to execute 'git log' command")?;
 
-        match log_output.status.success() {
-            true => {
-                let log_output_string = String::from_utf8(log_output.stdout)?;
-                let log_lines = log_output_string.lines();
+        if log_output.status.success() {
+            let log_output_string = String::from_utf8(log_output.stdout)?;
+            let log_lines = log_output_string.lines();
 
-                let mut trimmed_log_output: String = String::new();
+            let mut trimmed_log_output: String = String::new();
 
-                // Since git thinks this is not a tty, it wraps the log lines in single quotes; we remove them here.
-                for line in log_lines.into_iter() {
-                    trimmed_log_output.push_str(line.trim_matches('\''));
-                    trimmed_log_output.push('\n');
-                }
-
-                println!("{}", trimmed_log_output.trim_end());
-
-                io::stderr().write_all(&log_output.stderr)?;
-
-                Ok(GitCommandResult::Success)
+            // Since git thinks this is not a tty, it wraps the log lines in single quotes; we remove them here.
+            for line in log_lines.into_iter() {
+                trimmed_log_output.push_str(line.trim_matches('\''));
+                trimmed_log_output.push('\n');
             }
-            false => {
-                io::stdout().write_all(&log_output.stdout)?;
-                io::stderr().write_all(&log_output.stderr)?;
 
-                Ok(GitCommandResult::Error)
-            }
+            println!("{}", trimmed_log_output.trim_end());
+
+            io::stderr().write_all(&log_output.stderr)?;
+
+            Ok(GitCommandResult::Success)
+        } else {
+            io::stdout().write_all(&log_output.stdout)?;
+            io::stderr().write_all(&log_output.stderr)?;
+
+            Ok(GitCommandResult::Error)
         }
     }
 
