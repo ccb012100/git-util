@@ -44,6 +44,16 @@ pub struct CliOptions {
     )]
     pub verbose: u8,
 
+    /// Set logging level - if set, overrides `verbose`
+    #[arg(
+        long,
+        visible_alias("log"),
+        visible_alias("level"),
+        value_name = "LEVEL",
+        global = true
+    )]
+    pub log_level: Option<LevelFilter>,
+
     /// Print the `std::process::Command`s that are executed
     #[arg(long, short = 'p')]
     pub print_command: bool,
@@ -85,16 +95,19 @@ impl Cli {
     }
 
     pub fn initialize_logger(&self) {
-        let log_level = match self.options.verbose {
-            0 => LevelFilter::Error,
-            1 => LevelFilter::Warn,
-            2 => LevelFilter::Info,
-            3 => LevelFilter::Debug,
-            4..=std::u8::MAX => LevelFilter::Trace,
+        let level = match self.options.log_level {
+            Some(logging_level) => logging_level,
+            None => match self.options.verbose {
+                0 => LevelFilter::Error,
+                1 => LevelFilter::Warn,
+                2 => LevelFilter::Info,
+                3 => LevelFilter::Debug,
+                4..=std::u8::MAX => LevelFilter::Trace,
+            },
         };
 
-        env_logger::Builder::new().filter_level(log_level).init();
+        env_logger::Builder::new().filter_level(level).init();
 
-        info!("logging initialized at level {}", log_level);
+        info!("ℹ️ logging initialized at level {}", level);
     }
 }
