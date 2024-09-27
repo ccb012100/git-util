@@ -20,10 +20,30 @@ impl MutableCommands {
     /// `git add --all`
     ///
     /// Fails if there are already staged files.
-    pub fn add_updated_untracked() -> GitResult {
+    pub fn add_updated_and_untracked() -> GitResult {
         trace!("add_all() called");
 
-        Self::run_if_staging_empty(GitCommand::new("add").with_default_args(&["--all"]))
+        let result =
+            Self::run_if_staging_empty(GitCommand::new("add").with_default_args(&["--all"]));
+
+        if result.is_err() {
+            Err(anyhow!("git add --all returned an error"))
+        } else {
+            Self::status_short()
+        }
+    }
+
+    /// `git add --all`
+    pub fn add_updated_and_untracked_forced() -> GitResult {
+        trace!("add_all() called");
+
+        let result = GitCommand::new("add").with_default_args(&["--all"]).run();
+
+        if result.is_err() {
+            Err(anyhow!("git add --all returned an error"))
+        } else {
+            Self::status_short()
+        }
     }
 
     /// `git add --update && git status --short`
@@ -40,23 +60,38 @@ impl MutableCommands {
 
         // Equivalent to `git add --update && git status --short`
         let result =
-            Self::run_if_staging_empty(GitCommand::new("add").with_default_args(&["--update"]))?;
+            Self::run_if_staging_empty(GitCommand::new("add").with_default_args(&["--update"]));
 
-        match result {
-            GitCommandResult::Success => GitCommand::new("status")
-                .with_default_args(&["--short"])
-                .run(),
-            GitCommandResult::Error => Err(anyhow!("git add --update returned an error")),
+        if result.is_err() {
+            Err(anyhow!("git add --update returned an error"))
+        } else {
+            Self::status_short()
+        }
+    }
+
+    /// `git add --update && git status --short`
+    pub fn add_updated_forced() -> GitResult {
+        trace!("add_updated_forced() called");
+
+        // Equivalent to `git add --update && git status --short`
+        let result = GitCommand::new("add")
+            .with_default_args(&["--update"])
+            .run();
+
+        if result.is_err() {
+            Err(anyhow!("git add --update returned an error"))
+        } else {
+            Self::status_short()
         }
     }
 
     /// `git add --all && git commit`
     ///
     /// Fails if there are already staged files.
-    pub fn commit_updated_untracked() -> GitResult {
+    pub fn commit_updated_and_untracked() -> GitResult {
         trace!("aac() called");
 
-        match Self::add_updated_untracked()? {
+        match Self::add_updated_and_untracked()? {
             GitCommandResult::Success => GitCommand::new("commit").run(),
             GitCommandResult::Error => Err(anyhow!("git add --all returned an error")),
         }
@@ -68,11 +103,13 @@ impl MutableCommands {
     pub fn commit_updated_and_untracked_amend() -> GitResult {
         trace!("commit_all_amended called");
 
-        match Self::add_updated_untracked()? {
-            GitCommandResult::Success => GitCommand::new("commit")
+        let result = Self::add_updated_and_untracked();
+
+        match result.is_ok() {
+            true => GitCommand::new("commit")
                 .with_default_args(&["--amend"])
                 .run(),
-            GitCommandResult::Error => Err(anyhow!("git add --all returned an error")),
+            false => result,
         }
     }
 
@@ -125,6 +162,14 @@ impl MutableCommands {
         trace!("restore_all() called");
 
         GitCommand::new("restore").with_default_args(&[":/"]).run()
+    }
+
+    pub fn status_short() -> GitResult {
+        trace!("status_short() called");
+
+        GitCommand::new("status")
+            .with_default_args(&["--short"])
+            .run()
     }
 
     /// `git reset --mixed HEAD~NUM`

@@ -27,9 +27,12 @@ Commands:
   a        Wrapper around `git-add`
   aa       Add updated and untracked files
   aac      Add updated and untracked files and then commit
+  aaf      Add updated and untracked files and then commit
   aamend   Stage updated and untracked files and amend the previous commit
   alias    List configured aliases
+  au       Add updated (but not untracked) files
   auc      Commit updated files
+  auf      Add updated and (but not untracked) files
   aumend   Stage updated files and amend the previous commit
   author   Reset author to current value of `user.author` and `user.email` for the last n commits
   conf     List config settings (excluding aliases)
@@ -48,11 +51,12 @@ Arguments:
   [FALLBACK]...  A catch-all for passing straight through to the native `git` binary; required if [COMMAND] is not specified
 
 Options:
-  -v, --verbose...     Set verbosity; adding multiple times increases the verbosity level (>=4, i.e. `-vvvv`, sets maximum verbosity)
-  -p, --print-command  Print the `std::process::Command`s that are executed
-  -d, --dry-run        Print the `std::process::Command`s that will be executed, but do not run
-  -h, --help           Print help
-  -V, --version        Print version
+  -v, --verbose...         Set verbosity; adding multiple times increases the verbosity level (>=4, i.e. `-vvvv`, sets maximum verbosity)
+      --log-level <LEVEL>  Set logging level - if set, overrides `verbose` [aliases: log, level]
+  -p, --print-command      Print the `std::process::Command`s that are executed
+  -d, --dry-run            Print the `std::process::Command`s that will be executed, but do not run
+  -h, --help               Print help
+  -V, --version            Print version
 ```
 
 Any subcommand passed to `git-util` that does not match the above list of subcommands will be passed through to the `git` CLI, e.g. `git-util foo`

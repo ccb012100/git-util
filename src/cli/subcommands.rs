@@ -39,6 +39,11 @@ pub enum Subcommands {
     /// Fails if the staging area is not empty before attempting to add files.
     #[command(allow_hyphen_values = true)]
     Aac {},
+    /// Add updated and untracked files and then commit.
+    ///
+    /// Unlike `Aa`, this not fail if there are already staged files (think: `aa --force`).
+    #[command(allow_hyphen_values = true)]
+    Aaf {},
     /// Stage updated and untracked files and amend the previous commit.
     ///
     /// Fails if the staging area is not empty when subcommand is run.
@@ -52,12 +57,22 @@ pub enum Subcommands {
         #[clap(flatten)]
         options: GitConfigOpts,
     },
+    /// Add updated (but not untracked) files.
+    ///
+    /// Fails if the staging area is not empty before attempting to add files.
+    #[command(allow_hyphen_values = true)]
+    Au {},
     /// Commit updated files.
     ///
     /// Fails if the staging area is not empty when subcommand is run.
     #[clap(alias = "ac")]
     #[command(allow_hyphen_values = true)]
     Auc {},
+    /// Add updated and (but not untracked) files.
+    ///
+    /// Unlike `Au`, this not fail if there are already staged files (think: `au --force`).
+    #[command(allow_hyphen_values = true)]
+    Auf {},
     /// Stage updated files and amend the previous commit.
     ///
     /// Fails if the staging area is not empty when subcommand is run.
@@ -160,8 +175,9 @@ impl Subcommands {
                 Some(args) => MutableCommands::add(args),
                 None => MutableCommands::add_updated(),
             },
-            Subcommands::Aa {} => MutableCommands::add_updated_untracked(),
-            Subcommands::Aac {} => MutableCommands::commit_updated_untracked(),
+            Subcommands::Aa {} => MutableCommands::add_updated_and_untracked(),
+            Subcommands::Aac {} => MutableCommands::commit_updated_and_untracked(),
+            Subcommands::Aaf {} => MutableCommands::add_updated_and_untracked_forced(),
             Subcommands::Aamend {} => MutableCommands::commit_updated_and_untracked_amend(),
             Subcommands::Alias { filter, options } => ImmutableCommands::list_aliases(
                 filter.as_deref(),
@@ -170,6 +186,8 @@ impl Subcommands {
                     show_scope: options.show_scope,
                 },
             ),
+            Subcommands::Au {} => MutableCommands::add_updated(),
+            Subcommands::Auf {} => MutableCommands::add_updated_forced(),
             Subcommands::Auc {} => MutableCommands::commit_updated(),
             Subcommands::Aumend {} => MutableCommands::commit_updated_amend(),
             Subcommands::Author { num } => MutableCommands::update_commit_author(*num),
