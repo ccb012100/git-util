@@ -168,4 +168,13 @@ impl ImmutableCommands {
             ])
             .run()
     }
+
+    /// `git status --short`
+    pub fn status_short() -> GitResult {
+        trace!("status_short() called");
+
+        GitCommand::new("status")
+            .with_default_args(&["--short"])
+            .run()
+    }
 }
