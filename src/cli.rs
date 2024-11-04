@@ -102,7 +102,7 @@ impl Cli {
                 1 => LevelFilter::Warn,
                 2 => LevelFilter::Info,
                 3 => LevelFilter::Debug,
-                4..=std::u8::MAX => LevelFilter::Trace,
+                4..=u8::MAX => LevelFilter::Trace,
             },
         };
 
