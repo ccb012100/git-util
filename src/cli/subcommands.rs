@@ -83,6 +83,15 @@ pub enum Subcommands {
         /// Number of commits to reset (else defaults to 1)
         num: Option<u16>,
     },
+    /// Commit with message (alias for `git commit -m`).
+    ///
+    /// The staging area can be empty (so that it can be used with `--allow-empty`), but this fails if there are unstaged changes in the work tree.
+    Cm {
+        /// The commit message
+        message: String,
+        /// Additional command arguments
+        args: Option<Vec<String>>,
+    },
     /// List config settings (excluding aliases).
     Conf {
         /// The text to filter on
@@ -191,6 +200,13 @@ impl Subcommands {
             Subcommands::Auc {} => mutable::commit::updated(),
             Subcommands::Aumend {} => mutable::commit::amend_updated(),
             Subcommands::Author { num } => mutable::commit::change_author(*num),
+            Subcommands::Cm { message, args } => mutable::commit::with_message(
+                message,
+                match args {
+                    Some(args) => args,
+                    None => &[],
+                },
+            ),
             Subcommands::Conf { filter, options } => {
                 ImmutableCommands::list_configuration_settings(
                     filter.as_deref(),

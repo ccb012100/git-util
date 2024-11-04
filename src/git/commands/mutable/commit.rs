@@ -1,4 +1,4 @@
-use crate::git::{GitCommand, GitCommandResult, GitResult};
+use crate::git::{Git, GitCommand, GitCommandResult, GitResult};
 use anyhow::anyhow;
 use log::trace;
 
@@ -71,5 +71,29 @@ pub fn undo(num: Option<u16>) -> GitResult {
 
     GitCommand::new("reset")
         .with_default_args(&["--mixed", &format!("HEAD~{}", num.unwrap_or(1))])
+        .run()
+}
+
+/// `git commit -m`
+///
+/// Fails if there are unstaged changes in the work tree.
+pub fn with_message(message: &str, args: &[String]) -> GitResult {
+    trace!(
+        "with_message() called with: message={:#?} args={:#?}",
+        message,
+        args
+    );
+
+    if message.trim().is_empty() {
+        return Err(anyhow!("Must supply non-empty message!"));
+    }
+
+    if let GitCommandResult::Error = Git::verify_no_unstaged_changes()? {
+        return Err(anyhow!("There are unstaged changes in the working directory!"));
+    }
+
+    GitCommand::new("commit")
+        .with_default_args(&[&format!("--message='{}'", message)])
+        .with_user_args(args)
         .run()
 }

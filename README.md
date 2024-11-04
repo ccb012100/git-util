@@ -35,6 +35,7 @@ Commands:
   auf      Add updated and (but not untracked) files
   aumend   Stage updated files and amend the previous commit
   author   Reset author to current value of `user.author` and `user.email` for the last n commits
+  cm       Commit with message (alias for `git commit -m`)
   conf     List config settings (excluding aliases)
   hook     Call a git hook
   files    List the files that changed in the last n commits

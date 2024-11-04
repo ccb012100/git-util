@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Ok, Result};
 use log::{debug, trace};
 use std::{
     io::{stdout, IsTerminal},
@@ -81,6 +81,76 @@ impl Git {
             Ok(GitCommandResult::Success)
         } else {
             Ok(GitCommandResult::Error)
+        }
+    }
+
+    /// Return `Success` if there are no unstaged changes in the work tree.
+    ///
+    /// The staging area can be empty or populated.
+    fn verify_no_unstaged_changes() -> GitResult {
+        trace!("check_for_staged_files() called");
+        let output: std::process::Output =
+            Commands::new_command_with_args("git", &["status", "--porcelain"])
+                .output()
+                .expect("git command should execute");
+
+        if output.stdout.is_empty() {
+            Ok(GitCommandResult::Success)
+        } else {
+            let outlines = core::str::from_utf8(&output.stdout)
+                .expect("git output should be valid UTF-8")
+                .split('\n');
+
+            /*
+             * Each path starts with 'XY', where X is the status of the index,
+             * and Y is the status of the work tree. If XY is ' *' or '**', then
+             * we have unstaged changes (in other words, '* ' is the only valid state of XY)
+             */
+            let status_codes = ['M', 'A', 'D', 'C', 'R', 'U', '?'];
+
+            for line in outlines {
+                if line.is_empty() {
+                    // the output ends with a blank line
+                    continue;
+                }
+
+                let mut chars = line.chars();
+
+                let x = chars
+                    .next()
+                    .expect("git status entry should be in valid porcelain format");
+
+                let y = chars
+                    .next()
+                    .expect("git status entry should be in valid porcelain format");
+
+                debug!("'xy' = '{x}{y}'");
+
+                if status_codes.contains(&x) && y == ' ' {
+                    continue;
+                }
+
+                if x == ' ' || status_codes.contains(&y) {
+                    return Ok(GitCommandResult::Error);
+                }
+
+                if !status_codes.contains(&x) {
+                    panic!(
+                        "Invalid status code value {:?} in status entry: {:?}",
+                        x, line
+                    );
+                } else if y != ' ' {
+                    panic!(
+                        "Invalid status code value {:?} in status entry: {:?}",
+                        y, line
+                    );
+                } else {
+                    log::error!("Invalid status codes. Status entry: {:?}", line);
+                    panic!("This should be unreachable! Status entry: {:?}", line);
+                }
+            }
+
+            Ok(GitCommandResult::Success)
         }
     }
 }
