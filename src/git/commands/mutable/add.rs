@@ -12,7 +12,7 @@ pub fn add(args: &[String]) -> GitResult {
         return Err(anyhow!("Must supply arguments"));
     }
 
-    GitCommand::new("add").run()
+    GitCommand::new("add").with_user_args(args).run()
 }
 
 /// `git add --all`
