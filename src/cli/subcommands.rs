@@ -1,9 +1,6 @@
 use super::GitConfigOpts;
 use crate::git::{
-    commands::{
-        immutable::ImmutableCommands,
-        mutable::{self, MutableCommands},
-    },
+    commands::{immutable::ImmutableCommands, mutable},
     hooks::pre_commit::PreCommitHook,
     GitCommandResult, GitResult,
 };
@@ -175,13 +172,13 @@ impl Subcommands {
     pub fn run(&self) -> Result<GitCommandResult, anyhow::Error> {
         match self {
             Subcommands::A { args } => match args {
-                Some(args) => mutable::Add::add(args),
-                None => mutable::Add::updated(),
+                Some(args) => mutable::add::add(args),
+                None => mutable::add::updated(),
             },
-            Subcommands::Aa {} => mutable::Add::updated_and_untracked(),
-            Subcommands::Aac {} => mutable::Commit::updated_and_untracked(),
-            Subcommands::Aaf {} => mutable::Add::updated_and_untracked_forced(),
-            Subcommands::Aamend {} => mutable::Commit::amend_updated_and_untracked(),
+            Subcommands::Aa {} => mutable::add::updated_and_untracked(),
+            Subcommands::Aac {} => mutable::commit::updated_and_untracked(),
+            Subcommands::Aaf {} => mutable::add::updated_and_untracked_forced(),
+            Subcommands::Aamend {} => mutable::commit::amend_updated_and_untracked(),
             Subcommands::Alias { filter, options } => ImmutableCommands::list_aliases(
                 filter.as_deref(),
                 crate::git::GitConfigOpts {
@@ -189,11 +186,11 @@ impl Subcommands {
                     show_scope: options.show_scope,
                 },
             ),
-            Subcommands::Au {} => mutable::Add::updated(),
-            Subcommands::Auf {} => mutable::Add::updated_forced(),
-            Subcommands::Auc {} => mutable::Commit::updated(),
-            Subcommands::Aumend {} => mutable::Commit::amend_updated(),
-            Subcommands::Author { num } => mutable::Commit::change_author(*num),
+            Subcommands::Au {} => mutable::add::updated(),
+            Subcommands::Auf {} => mutable::add::updated_forced(),
+            Subcommands::Auc {} => mutable::commit::updated(),
+            Subcommands::Aumend {} => mutable::commit::amend_updated(),
+            Subcommands::Author { num } => mutable::commit::change_author(*num),
             Subcommands::Conf { filter, options } => {
                 ImmutableCommands::list_configuration_settings(
                     filter.as_deref(),
@@ -211,23 +208,23 @@ impl Subcommands {
             Subcommands::Restore { which, args } => {
                 if let Some(all) = which {
                     match all {
-                        WhichFiles::All => mutable::Index::restore_all(),
+                        WhichFiles::All => mutable::index::restore_all(),
                     }
                 } else {
-                    mutable::Index::restore(args)
+                    mutable::index::restore(args)
                 }
             }
-            Subcommands::Undo { num } => mutable::Commit::undo(*num),
+            Subcommands::Undo { num } => mutable::commit::undo(*num),
             Subcommands::Unstage { which, args } => {
                 if let Some(which) = which {
                     match which {
-                        WhichFiles::All => mutable::Index::unstage_all(),
+                        WhichFiles::All => mutable::index::unstage_all(),
                     }
                 } else {
-                    mutable::Index::unstage(args)
+                    mutable::index::unstage(args)
                 }
             }
-            Subcommands::Update { branch } => MutableCommands::update_branch_from_remote(branch),
+            Subcommands::Update { branch } => mutable::update_branch_from_remote(branch),
         }
     }
 }

@@ -6,25 +6,18 @@ pub mod add;
 pub mod commit;
 pub mod index;
 
-pub struct MutableCommands();
-pub struct Add();
-pub struct Commit();
-pub struct Index();
+// `git fetch --verbose origin:BRANCH`
+pub fn update_branch_from_remote(branch: &String) -> GitResult {
+    debug!("update() called with: {:#?}", branch);
 
-impl MutableCommands {
-    // `git fetch --verbose origin:BRANCH`
-    pub fn update_branch_from_remote(branch: &String) -> GitResult {
-        debug!("update() called with: {:#?}", branch);
-
-        if branch.is_empty() {
-            return Err(anyhow!("Must supply branch name"));
-        }
-
-        GitCommand::new("fetch")
-            .with_default_args(&["--verbose", "origin"])
-            .with_user_args(&[format!("{0}:{0}", branch)])
-            .run()
+    if branch.is_empty() {
+        return Err(anyhow!("Must supply branch name"));
     }
+
+    GitCommand::new("fetch")
+        .with_default_args(&["--verbose", "origin"])
+        .with_user_args(&[format!("{0}:{0}", branch)])
+        .run()
 }
 
 /// Run `command` if the staging area is empty.
