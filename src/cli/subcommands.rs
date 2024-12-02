@@ -21,13 +21,15 @@ pub enum WhichFiles {
 #[derive(Subcommand, Debug)]
 pub enum Subcommands {
     /// Wrapper around `git-add`.
-    ///
-    /// - If called without `args`, it adds all unstaged files IFF the staging area is empty.
-    /// - If called with args, it passes through to `git-add`.
     #[command(allow_hyphen_values = true)]
-    A {
+    #[clap(alias = "a")]
+    Add {
+        /// which files to operate on
+        #[command(subcommand)]
+        which: Option<WhichFiles>,
+
         /// Command arguments
-        args: Option<Vec<String>>,
+        args: Vec<String>,
     },
     /// Add updated and untracked files.
     ///
@@ -180,9 +182,14 @@ pub enum Subcommands {
 impl Subcommands {
     pub fn run(&self) -> Result<GitCommandResult, anyhow::Error> {
         match self {
-            Subcommands::A { args } => match args {
-                Some(args) => mutable::add::add(args),
-                None => mutable::add::updated(),
+            Subcommands::Add { which, args } => {
+                if let Some(which) = which {
+                    match which {
+                        WhichFiles::All => mutable::add::add(&[":/".to_string()]),
+                    }
+                } else {
+                    mutable::add::add(args)
+                }
             },
             Subcommands::Aa {} => mutable::add::updated_and_untracked(),
             Subcommands::Aac {} => mutable::commit::updated_and_untracked(),

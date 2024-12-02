@@ -165,7 +165,7 @@ impl GitCommand<'_> {
     }
 
     /// same as `self`, but with `defaults_args` set to `args`
-    fn with_default_args<'a>(&'a self, args: &'a [&'a str]) -> GitCommand {
+    fn with_default_args<'a>(&'a self, args: &'a [&'a str]) -> GitCommand<'a> {
         GitCommand {
             subcommand: self.subcommand,
             default_args: args,
@@ -174,7 +174,7 @@ impl GitCommand<'_> {
     }
 
     /// same as `self`, but with `user_args` set to `args`
-    fn with_user_args<'a>(&'a self, args: &'a [String]) -> GitCommand {
+    fn with_user_args<'a>(&'a self, args: &'a [String]) -> GitCommand<'a> {
         GitCommand {
             subcommand: self.subcommand,
             default_args: self.default_args,
