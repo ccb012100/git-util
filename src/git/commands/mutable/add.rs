@@ -21,6 +21,10 @@ pub fn add(args: &[String]) -> GitResult {
 pub fn updated_and_untracked() -> GitResult {
     trace!("add_all() called");
 
+    if let GitCommandResult::Error = Git::verify_staging_area_is_empty()? {
+        return Err(anyhow!("There are already staged files!"));
+    }
+
     let result = super::run_if_staging_empty(GitCommand::new("add").with_default_args(&["--all"]));
 
     if result.is_err() {
@@ -33,6 +37,10 @@ pub fn updated_and_untracked() -> GitResult {
 /// `git add --all`
 pub fn updated_and_untracked_forced() -> GitResult {
     trace!("add_all() called");
+
+    if let GitCommandResult::Error = Git::verify_staging_area_is_empty()? {
+        return Err(anyhow!("There are already staged files!"));
+    }
 
     let result = GitCommand::new("add").with_default_args(&["--all"]).run();
 
@@ -50,9 +58,7 @@ pub fn updated() -> GitResult {
     trace!("add_updated() called");
 
     if let GitCommandResult::Error = Git::verify_staging_area_is_empty()? {
-        return Err(anyhow!(
-            "Can not add updated files to staging area; there are already staged files!"
-        ));
+        return Err(anyhow!("There are already staged files!"));
     }
 
     // Equivalent to `git add --update && git status --short`
