@@ -89,11 +89,24 @@ pub fn with_message(message: &str, args: &[String]) -> GitResult {
     }
 
     if let GitCommandResult::Error = Git::verify_no_unstaged_changes()? {
-        return Err(anyhow!("There are unstaged changes in the working directory!"));
+        return Err(anyhow!(
+            "There are unstaged changes in the working directory!"
+        ));
     }
 
     GitCommand::new("commit")
         .with_default_args(&[&format!("--message='{}'", message)])
         .with_user_args(args)
+        .run()
+}
+
+/// `git amend --mixed HEAD~NUM`
+///
+/// Fails if there are already staged files.
+pub fn interactive_rebase(num: Option<u16>) -> GitResult {
+    trace!("interactive_rebase called");
+
+    GitCommand::new("rebase")
+        .with_default_args(&["--interactive", &format!("HEAD~{}", num.unwrap_or(10))])
         .run()
 }

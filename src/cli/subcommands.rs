@@ -144,6 +144,12 @@ pub enum Subcommands {
         /// Command arguments
         args: Vec<String>,
     },
+    /// Interactively rebase the last n commits
+    #[command(allow_hyphen_values = true)]
+    Ri {
+        /// The number of commits to rebase (else defaults to 10)
+        num: Option<u16>,
+    },
     /// Wrapper around `git-show`.
     #[command(allow_hyphen_values = true)]
     #[clap(alias = "sh")]
@@ -190,7 +196,7 @@ impl Subcommands {
                 } else {
                     mutable::add::add(args)
                 }
-            },
+            }
             Subcommands::Aa {} => mutable::add::updated_and_untracked(),
             Subcommands::Aac {} => mutable::commit::updated_and_untracked(),
             Subcommands::Aaf {} => mutable::add::updated_and_untracked_forced(),
@@ -237,6 +243,7 @@ impl Subcommands {
                     mutable::index::restore(args)
                 }
             }
+            Subcommands::Ri { num } => mutable::commit::interactive_rebase(*num),
             Subcommands::Undo { num } => mutable::commit::undo(*num),
             Subcommands::Unstage { which, args } => {
                 if let Some(which) = which {
