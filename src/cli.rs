@@ -1,9 +1,7 @@
 use self::subcommands::Subcommands;
 use crate::git::{Git, GitResult, DRY_RUN, PRINT_COMMANDS};
 use clap::{
-    arg,
     builder::{styling::AnsiColor, Styles},
-    command,
     error::ErrorKind,
     Args, CommandFactory, Parser,
 };

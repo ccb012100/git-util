@@ -21,9 +21,6 @@ pub static PRINT_COMMANDS: AtomicBool = AtomicBool::new(false);
 /// Flag used to indicate whether subcommand is a dry run
 pub static DRY_RUN: AtomicBool = AtomicBool::new(false);
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct DefaultMaxCount(pub u8);
-
 /// Represents a call to the Git CLI in the form: `git SUBCOMMAND [DEFAULT_ARGS] [USER_ARGS]`
 #[derive(Debug, PartialEq, Eq)]
 pub struct GitCommand<'a> {
